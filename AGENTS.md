@@ -10,6 +10,11 @@ Greenfield project: no code exists yet. `docs/PRD.md` is the source of truth for
 - Chat must stream token-by-token (SSE) from FastAPI through Node to the client — not buffered.
 - Stack: Next.js (frontend), Node/Express-or-Fastify (Fastify preferred for streaming), FastAPI + LangGraph (AI service, stateless), Postgres (system of record), Qdrant (vector DB, `doc_chunks` collection).
 
+## Code quality (PRD §3.5)
+
+- TypeScript (strict `tsconfig.json`) for both Next.js frontend and Node backend; FastAPI stays Python with type hints — Pydantic models for all request/response schemas.
+- ESLint (TypeScript recommended rules) + Prettier on both JS projects; lint + format must pass as part of MVP Definition of Done.
+
 ## Agent behavior (don't skip)
 
 - `/query` is a LangGraph graph, not a single retrieve-then-generate call: `classify_q → simple_rag → grounding_check → final_answer`.

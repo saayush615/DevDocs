@@ -87,6 +87,13 @@ Qdrant (vector DB)
 - Payload fields: `document_id`, `user_id`, `chunk_index`, `content_preview`, `title`.
 - All queries filtered by `user_id` (and `role`/`workspace_id` in stretch scope) to ensure retrieval isolation between users.
 
+### 3.5 Code Quality & Language Standards
+
+- **Language:** TypeScript for both the Next.js frontend and the Node.js backend (strict mode enabled in `tsconfig.json`). FastAPI service remains Python with type hints (Pydantic models for all request/response schemas).
+- **Linting:** ESLint configured for both Next.js and Node.js projects, extending recommended TypeScript rules.
+- **Formatting:** Prettier configured for both Next.js and Node.js projects, run via pre-commit hook or `npm run format`.
+- **Enforcement:** lint + format checks should pass before any code is considered part of the MVP Definition of Done (Section 8).
+
 ---
 
 ## 4. Agent Design (LangGraph)
