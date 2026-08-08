@@ -1,0 +1,55 @@
+# ---- OS / Editor ----
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.suo
+*.user
+
+# ---- Env files (never commit real secrets; keep .env.example) ----
+.env
+.env.*
+!.env.example
+*.pem
+
+# ---- Node / Next.js (frontend) ----
+node_modules/
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+*.log
+coverage/
+.vite/
+
+# ---- Node backend ----
+backend/dist/
+backend/build/
+
+# ---- Python / FastAPI (ai-service) ----
+ai-service/.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# ---- Logs / misc ----
+logs/
+*.log
+.tmp/
+*.bak
+
+# ---- Docker / local data ----
+qdrant_data/
+pgdata/
