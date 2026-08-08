@@ -91,7 +91,8 @@ Qdrant (vector DB)
 
 - **Language:** TypeScript for both the Next.js frontend and the Node.js backend (strict mode enabled in `tsconfig.json`). FastAPI service remains Python with type hints (Pydantic models for all request/response schemas).
 - **Linting:** ESLint configured for both Next.js and Node.js projects, extending recommended TypeScript rules.
-- **Formatting:** Prettier configured for both Next.js and Node.js projects, run via pre-commit hook or `npm run format`.
+- **Formatting:** Prettier configured for both Next.js and Node.js projects, run via pre-commit hook or `pnpm run format`.
+- **Package manager:** pnpm for both the Next.js frontend and the Node.js backend (no npm/yarn lockfiles). Use `pnpm` for all installs and script execution.
 - **Enforcement:** lint + format checks should pass before any code is considered part of the MVP Definition of Done (Section 8).
 
 ---

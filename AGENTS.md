@@ -14,6 +14,7 @@ Greenfield project: no code exists yet. `docs/PRD.md` is the source of truth for
 
 - TypeScript (strict `tsconfig.json`) for both Next.js frontend and Node backend; FastAPI stays Python with type hints — Pydantic models for all request/response schemas.
 - ESLint (TypeScript recommended rules) + Prettier on both JS projects; lint + format must pass as part of MVP Definition of Done.
+- Use **pnpm** as the package manager for both TS projects (never npm/yarn). All installs and scripts run via `pnpm`.
 
 ## Agent behavior (don't skip)
 
