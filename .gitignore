@@ -32,6 +32,7 @@ coverage/
 # ---- Node backend ----
 backend/dist/
 backend/build/
+backend/src/generated/prisma/
 
 # ---- Python / FastAPI (ai-service) ----
 ai-service/.venv/
