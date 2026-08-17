@@ -1,6 +1,6 @@
 import cors from 'cors';
 import express, { type Express, type Request, type Response } from 'express';
-import { toNodeHandler } from "better-auth/node";
+import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.js';
 
 const app: Express = express();
@@ -13,7 +13,7 @@ app.use(
   }),
 );
 
-app.all("/api/auth/*splat", toNodeHandler(auth)); // better auth route
+app.all('/api/auth/*splat', toNodeHandler(auth)); // better auth route
 
 app.use(express.json());
 
