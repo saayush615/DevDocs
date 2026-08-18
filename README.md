@@ -6,8 +6,8 @@ DevDocs Copilot is an internal knowledge assistant. Instead of engineers digging
 
 ## 2. Tech Stack
 
-- **Frontend:** Next.js (TypeScript)
-- **Backend:** Node.js + Express (TypeScript)
+- **Frontend:** Next.js (TypeScript, App Router)
+- **Backend:** Node.js + Express 5 (TypeScript, better-auth)
 - **AI Service:** FastAPI (Python) + LangGraph
 - **Vector DB:** Qdrant
 - **Database:** PostgreSQL
@@ -19,28 +19,48 @@ DevDocs Copilot is an internal knowledge assistant. Instead of engineers digging
 ```
 ┌─────────────┐        ┌──────────────────┐        ┌───────────────────┐
 │  Next.js     │ HTTPS  │   Node.js (BFF)   │ HTTPS  │   FastAPI (AI svc) │
-│  - Chat UI   │──────► │  - Auth (JWT)     │──────► │  - /ingest         │
-│  - Upload UI │ SSE    │  - Postgres       │ stream │  - /query (agent)  │
-│  - Admin UI  │◄────── │  - Rate limiting  │◄────── │  - LangGraph graph │
+│  - Chat UI   │──────► │  - Auth (better- │──────► │  - /ingest         │
+│  - Upload UI │ SSE    │    auth cookies) │ stream │  - /query (agent)  │
+│  - Admin UI  │◄────── │  - Postgres       │◄────── │  - LangGraph graph │
 └─────────────┘        └────────┬──────────┘        └─────────┬──────────┘
                                  │                              │
                                  ▼                              ▼
                         ┌──────────────────┐         ┌───────────────────┐
                         │ Postgres         │         │   Qdrant (vector) │
-                        │ users, convos,   │         │                   │
-                        │ docs metadata    │         └───────────────────┘
+                        │ users, documents,│         │                   │
+                        │ conversations,   │         └───────────────────┘
+                        │ messages         │
                         └──────────────────┘
 ```
 
-Next.js never talks to FastAPI directly — every request goes through Node, which handles auth and owns the data.
+Next.js never talks to FastAPI directly — every request goes through Node, which handles auth and owns the data. Node calls FastAPI with a service-to-service token; FastAPI trusts only requests carrying it.
 
-## 4. MVP TODO
+Key rules (see `docs/PRD.md` §3-4 for details):
 
-- [ ] User signup/login (JWT auth)
-- [ ] Upload document (`.md` / `.txt`)
-- [ ] Chunk + embed document, store in Qdrant
-- [ ] Chat endpoint: ask question, get streamed answer
-- [ ] Citations shown with each answer
+- **Auth:** email + password via better-auth. Sessions are better-auth cookies — not hand-rolled JWTs.
+- **Streaming:** chat responses stream token-by-token (SSE) from FastAPI through Node to the client — never buffered.
+- **Isolation:** every Qdrant query is filtered by `user_id` — no cross-user data leakage.
+- **Grounded answers:** `/query` runs a LangGraph graph (`classify_q → simple_rag → grounding_check → final_answer`). Every answer includes citations (`document_id`, `chunk_index`, snippet) and `route_taken` (`simple` | `multi_hop`). If the answer isn't supported by retrieved chunks, the agent says "I don't have enough information" — never guesses.
+
+## 4. Current Status
+
+- **Done:** User signup/login via better-auth (session cookies, persisted in Postgres).
+- **Not yet built:** document upload/ingestion, Qdrant vector store, LangGraph agent, chat + SSE streaming, conversation history. The AI service (`ai-service/`) is currently a FastAPI stub, and `docker-compose.yml` runs only Postgres (no Qdrant container yet).
+
+## 5. MVP TODO
+
+- [x] User signup/login (better-auth, session cookies)
+- [ ] Upload document (`.md` / `.txt`), chunk + embed, store in Qdrant
+- [ ] Chat endpoint: ask question, get streamed answer with citations
 - [ ] Agent routes simple vs. multi-hop questions
 - [ ] Grounding check before returning an answer
 - [ ] Conversation history saved and reloadable
+
+## 6. Local development
+
+Each package installs and runs independently with `pnpm` (not a pnpm workspace).
+
+1. Start Postgres: `docker compose up -d` (Postgres 17, `devdocs`/`devdocs`/`devdocs` on port 5432).
+2. Backend (`backend/`): copy `.env.example` → `.env`, run `pnpm install`, then `pnpm prisma generate` (generated client is gitignored) and `pnpm dev` — port **3001**.
+3. Frontend (`frontend/`): copy `.env.example` → `.env`, run `pnpm install`, then `pnpm dev` — port **3000**. The auth client calls the backend directly via `NEXT_PUBLIC_BACKEND_URL` (no Next proxy).
+4. AI service (`ai-service/`): use the existing Python 3.14 venv at `ai-service/.venv` and run `uvicorn app.main:app` from `ai-service/`.

@@ -1,38 +1,55 @@
 # AGENTS.md
 
-Greenfield project: no code exists yet. `docs/PRD.md` is the source of truth for architecture and scope — read it before implementing anything.
+`docs/PRD.md` is the source of truth for architecture and scope — read it before implementing anything.
 
-## Architecture (non-negotiable)
+Three separate packages, **not** a pnpm workspace: `frontend/` (Next.js), `backend/` (Express 5), `ai-service/` (FastAPI). Each has its own `package.json` + `pnpm-lock.yaml`. Install and run per package with `pnpm`.
 
-- **The frontend never calls the AI service directly.** Next.js → Node backend → FastAPI. Node is the single auth boundary and system of record.
-- Node calls FastAPI with a service-to-service token; FastAPI trusts only requests carrying it.
+## Current state (verified — don't assume more)
+
+- **Auth works end-to-end.** Backend mounts better-auth at `/api/auth/*` (`backend/src/index.ts`); frontend uses the better-auth React client (`frontend/lib/auth-client.ts`) calling the backend directly.
+- **Everything else is unimplemented.** `ai-service/` is a FastAPI hello-world stub (`app/main.py`); no LangGraph, no Qdrant. `docker-compose.yml` runs **only Postgres 17** (user/pass/db all `devdocs`, port 5432) — there is no Qdrant container.
+- `backend/prisma/schema.prisma` contains **only better-auth tables** (User, Session, Account, Verification). The PRD §5 domain tables (`documents`, `document_chunks`, `conversations`, `messages`) do not exist yet — create them and run a migration when you build those features.
+- No test setup anywhere in the repo.
+
+## Commands
+
+Backend (`backend/`):
+- `pnpm dev` — `tsx watch src/index.ts`, port **3001**
+- `pnpm build` — `tsc` (typecheck + emit to `dist/`); there is no separate typecheck script
+- `pnpm lint` / `pnpm format` / `pnpm format:check`
+- `pnpm prisma ...` — Prisma 7 CLI (`generate`, `migrate dev`, etc.)
+
+Frontend (`frontend/`):
+- `pnpm dev` — `next dev`, port **3000**
+- `pnpm lint` / `pnpm format` / `pnpm build`
+
+AI service (`ai-service/`): Python 3.14 venv already at `ai-service/.venv`; run `uvicorn app.main:app` from `ai-service/`. `requirements.txt` is a pip-freeze-style lock (kept current via `uv`).
+
+## Prisma 7 quirks
+
+- Generator `prisma-client` outputs to `backend/src/generated/prisma`, which is **gitignored** — run `pnpm prisma generate` after cloning before `tsc`/dev works.
+- Backend imports the client from `../generated/prisma/client.js` and uses the `@prisma/adapter-pg` driver adapter (`backend/src/lib/prisma.ts`).
+- `prisma.config.ts` loads dotenv and reads `DATABASE_URL`; migrations live in `prisma/migrations/`.
+
+## Backend gotchas
+
+- ESM (`module: nodenext` + `verbatimModuleSyntax`): relative imports must use explicit `.js` extensions (`import { auth } from './lib/auth.js'`).
+- Required env (`backend/.env`, template in `.env.example`): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `FRONTEND_URL`.
+- better-auth cookie prefix is `devdocs`, secure cookies off (local dev); CORS allows `http://localhost:3000` with credentials.
+- Frontend has no Next proxy/rewrite — the auth client hits `http://localhost:3001` directly via `NEXT_PUBLIC_BACKEND_URL` (`frontend/.env`).
+
+## Prettier differs per package
+
+- Backend: single quotes. Frontend: double quotes + `prettier-plugin-tailwindcss`. Run `format` inside each package; do not apply one style repo-wide.
+
+## Architecture (non-negotiable, PRD §3)
+
+- **The frontend never calls the AI service directly.** Next.js → Node (auth boundary, system of record) → FastAPI with a service-to-service token; FastAPI trusts only requests carrying it.
 - **Retrieval isolation:** every Qdrant query must be filtered by `user_id` — no cross-user data leakage, ever.
 - Chat must stream token-by-token (SSE) from FastAPI through Node to the client — not buffered.
-- Stack: Next.js (frontend), Node/Express-or-Fastify (Fastify preferred for streaming), FastAPI + LangGraph (AI service, stateless), Postgres (system of record), Qdrant (vector DB, `doc_chunks` collection).
+- `/query` is a LangGraph graph (`classify_q → simple_rag → grounding_check → final_answer`), not a single call. Every answer includes text, citations (`document_id`, `chunk_index`, snippet), and `route_taken` (`simple` | `multi_hop`). Grounding check is mandatory: if unsupported by retrieved chunks, say "I don't have enough information" — never guess.
+- When you add `documents`, its `status` transitions are `pending → chunking → embedded | failed`; on any ingestion failure set `failed` and make it visible in the UI — never silently drop.
 
-## Code quality (PRD §3.5)
+## Scope discipline (PRD §9 — do not build yet)
 
-- TypeScript (strict `tsconfig.json`) for both Next.js frontend and Node backend; FastAPI stays Python with type hints — Pydantic models for all request/response schemas.
-- ESLint (TypeScript recommended rules) + Prettier on both JS projects; lint + format must pass as part of MVP Definition of Done.
-- Use **pnpm** as the package manager for both TS projects (never npm/yarn). All installs and scripts run via `pnpm`.
-
-## Agent behavior (don't skip)
-
-- `/query` is a LangGraph graph, not a single retrieve-then-generate call: `classify_q → simple_rag → grounding_check → final_answer`.
-- Every answer must include: answer text, citations (`document_id`, `chunk_index`, snippet), and `route_taken` (`simple` | `multi_hop`) — the route is stored for audit/eval.
-- Grounding check is mandatory: if the answer isn't supported by retrieved chunks, return "I don't have enough information" — never guess.
-
-## Data model
-
-- Postgres tables: `users`, `documents`, `document_chunks`, `conversations`, `messages` (see PRD §5 for columns).
-- `documents.status` transitions: `pending` → `chunking` → `embedded` | `failed`. On any ingestion failure, set `failed` and make it visible in the UI — never silently drop.
-
-## Config & dev
-
-- All config via environment variables (`.env`, with `.env.example`): embedding model (Gemini `gemini-embedding-001/002`), LLM provider (Groq or other), API keys. Nothing hardcoded.
-- Qdrant runs via Docker locally; the full stack must be runnable locally with `.env.example` provided.
-- Passwords hashed (bcrypt/argon2); JWT-based auth.
-
-## Scope discipline
-
-Do NOT build these yet (explicitly out of MVP, PRD §9): role/workspace access control, admin audit log UI, agent tool-calling actions, PDF/GitHub ingestion, re-indexing on document update.
+Role/workspace access control, admin audit log UI, agent tool-calling actions, PDF/GitHub ingestion, re-indexing on document update.

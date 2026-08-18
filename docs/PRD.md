@@ -41,7 +41,7 @@ Three-tier system. Strict rule: **the frontend never calls the AI service direct
 
 ```
 Next.js (frontend)
-   │  HTTPS (JWT cookie/header)
+   │  HTTPS (better-auth session cookie)
    ▼
 Node.js (BFF / backend)
    │  - Auth, user/session management
@@ -57,7 +57,8 @@ Qdrant (vector DB)
 ```
 
 ### 3.1 Frontend (Next.js)
-- Auth pages (signup/login).
+- Auth pages (signup/login) using the better-auth client (`frontend/lib/auth-client.ts`).
+- All client-side forms (signup/login, and any future forms) use **react-hook-form** for state/submission handling and **zod** schemas for validation (`zodResolver`), with zod schemas co-located in `frontend/lib/`.
 - Document upload page + document list/status view.
 - Chat interface with streaming responses and inline citations.
 - Conversation history sidebar.
@@ -66,7 +67,7 @@ Qdrant (vector DB)
 ### 3.2 Backend (Node.js)
 - Framework: Express or Fastify (either acceptable; Fastify preferred for native streaming support).
 - Responsibilities:
-  - JWT-based auth (signup, login, session validation).
+  - Auth via **better-auth** (email + password): signup, login, session validation, session cookies. Mounted as a single handler at `/api/auth/*` (see Section 6).
   - Document upload endpoint: accepts file, extracts raw text, stores metadata in Postgres, forwards content to FastAPI `/ingest`.
   - Chat endpoint: accepts question + conversation_id, forwards to FastAPI `/query` with service-to-service auth, streams the response back to the client via SSE, persists the resulting message + retrieved citations.
   - Conversation CRUD endpoints.
@@ -91,6 +92,7 @@ Qdrant (vector DB)
 
 - **Language:** TypeScript for both the Next.js frontend and the Node.js backend (strict mode enabled in `tsconfig.json`). FastAPI service remains Python with type hints (Pydantic models for all request/response schemas).
 - **Linting:** ESLint configured for both Next.js and Node.js projects, extending recommended TypeScript rules.
+- **Frontend forms:** react-hook-form + zod (`@hookform/resolvers`) for all client-side forms; no hand-rolled `useState`-per-field form handling.
 - **Formatting:** Prettier configured for both Next.js and Node.js projects, run via pre-commit hook or `pnpm run format`.
 - **Package manager:** pnpm for both the Next.js frontend and the Node.js backend (no npm/yarn lockfiles). Use `pnpm` for all installs and script execution.
 - **Enforcement:** lint + format checks should pass before any code is considered part of the MVP Definition of Done (Section 8).
@@ -124,6 +126,10 @@ Every response returned to the user must include: the answer text, a list of cit
 ## 5. Data Model (Postgres)
 
 ```sql
+-- Auth tables (user, session, account, verification) are created and managed by
+-- better-auth via the Prisma adapter (@better-auth/prisma-adapter) — do not
+-- define them manually. The app's domain tables reference the user id.
+
 users (
   id, email, password_hash, role, created_at
 )
@@ -166,8 +172,11 @@ Response (streamed, then final JSON):
 
 **Next.js → Node**
 ```
-POST /api/auth/signup
-POST /api/auth/login
+Auth is handled by better-auth mounted at /api/auth/* via toNodeHandler, e.g.:
+POST /api/auth/sign-up/email     (signup: email, password, name)
+POST /api/auth/sign-in/email     (login: email, password)
+POST /api/auth/sign-out          (sign out)
+GET  /api/auth/get-session       (validate session)
 POST /api/documents/upload      (multipart file)
 GET  /api/documents              (list with status)
 POST /api/chat                   (question, conversation_id) → streamed response
@@ -180,7 +189,7 @@ FastAPI must never be called from the frontend directly. All FastAPI endpoints r
 
 ## 7. Non-Functional Requirements
 
-- **Auth:** JWT-based; passwords hashed (bcrypt/argon2).
+- **Auth:** email + password via better-auth; passwords hashed (bcrypt/argon2) by better-auth; sessions are better-auth cookies (not hand-rolled JWTs). Node is the single auth boundary — better-auth never runs in the frontend; the frontend only uses the better-auth client to call Node.
 - **Isolation:** all retrieval must be filtered by `user_id` at the Qdrant query level — no cross-user data leakage.
 - **Streaming:** chat responses must stream token-by-token from FastAPI through Node to the client (SSE).
 - **Resilience:** ingestion failures must set `documents.status = 'failed'` and be visible in the UI, not silently dropped.
