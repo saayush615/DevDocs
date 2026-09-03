@@ -7,7 +7,7 @@ class IngestRequest(BaseModel):
     content: str        # The full text content of the document
     source_type: str    # Type: "markdown", "text", etc.
 
-class IngestRequest(BaseModel):
+class IngestResponse(BaseModel):
     """What we send after successful ingestion."""
     status: str          #success or fail
     chunks_created: int  #Number of chunks created
