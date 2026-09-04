@@ -4,7 +4,7 @@ class Settings(BaseSettings):
     """Application settings loaded from enviroment variables."""
 
     QDRANT_URL: str = "http://localhost:6333"
-    GEMINI_API_KEY: str
+    GOOGLE_API_KEY: str
     SERVICE_TOKEN: str
     EMBEDDING_MODEL: str = "gemini-embedding-001"
     EMBEDDING_DIM: int = 768
