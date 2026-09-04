@@ -29,7 +29,7 @@ app.include_router(ingest_router)
 
 ---
 
-## Pydantic
+## 2. Pydantic
 Data validation + settings management using Python type hints. Two main use cases:
 
 ### A. BaseModel — Request/Response schemas
@@ -67,3 +67,38 @@ class Settings(BaseSettings):
 
 settings = Settings()  # instantiate once, import everywhere
 ```
+
+---
+
+# 3. Lifespan Function in fastapi
+
+**Definition**: The lifespan function is an async context manager in FastAPI that lets you run code once at **startup** (before the app accepts requests) and once at **shutdown** (after the app stops handling requests), all in a single function using yield.
+
+**When to use it**: Use it when you need to set up shared resources **before your app starts** and **clean them up when it stops** — for example, loading an ML model, connecting to a database, or initializing a cache.
+```python
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- STARTUP ---
+    print("App is starting up...")
+
+    yield  # The app runs and handles requests here
+
+    # --- SHUTDOWN ---
+    print("App is shutting down...")
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+```
+
+- Code before _yield_ -> Once, before the app starts accepting requests
+- _yield_ -> The app is live and handling requests
+- Code after _yield_ -> Once, when the app is stopping
