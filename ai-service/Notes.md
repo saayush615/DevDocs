@@ -102,3 +102,48 @@ async def root():
 - Code before _yield_ -> Once, before the app starts accepting requests
 - _yield_ -> The app is live and handling requests
 - Code after _yield_ -> Once, when the app is stopping
+
+---
+
+# 4. Dependency Injection & Exceptions
+
+## `Depends()`
+
+Runs a function before the endpoint and injects its return value as a parameter. If the function raises `HTTPException`, the endpoint never runs.
+
+```python
+_: str = Depends(verify_token)
+```
+
+`_` means the returned value isn't needed.
+
+## `Security()`
+
+Same as `Depends()`, but for auth schemes. Dependencies can chain — one dependency can depend on another.
+
+```python
+security = HTTPBearer()  # parses "Authorization: Bearer <token>"
+
+def verify_token(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+) -> str:
+    token = credentials.credentials
+    if token != settings.SERVICE_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return token
+```
+
+`HTTPBearer()` runs first, parses the header, auto-raises `401/403` if malformed, and returns credentials with `.scheme` and `.credentials`.
+
+## Bare `raise`
+
+Re-raises the caught exception unchanged.
+
+```python
+except HTTPException:
+    raise
+except Exception as e:
+    return IngestResponse(status="failed", chunks_created=0)
+```
+
+`HTTPException` is a subclass of `Exception`, so a plain `except Exception` would also swallow it, turning a `400` into a misleading `200`. Catching `HTTPException` first and re-raising it preserves the correct status code.
