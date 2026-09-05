@@ -1,10 +1,11 @@
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from config import settings
-from routers import ingest
-from services.vector_store import init_collection
+from app.config import settings
+from app.routers import ingest
+from app.services.vector_store import init_collection
 
 # Lifespan Function
 @asynccontextmanager

@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     EMBEDDING_DIM: int = 768
     QDRANT_COLLECTION: str = "doc_chunks"
 
-    model_config = SettingsConfigDict(env_file='.env')
+    model_config = SettingsConfigDict(env_file='app/.env')
 
 
 # Singleton instance - import this to access settings

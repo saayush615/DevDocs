@@ -40,6 +40,12 @@ async def ingest_document(
             chunks_created=chunks_stored,
         )
 
+    except HTTPException:
+        # Let FastAPI handle HTTP errors normally (keeps the 400 status).
+        # Without this, the generic handler below would convert it into
+        # a misleading `{"status": "failed"}` with HTTP 200.
+        raise
+
     except Exception as e:
         print(f"Ingestion failed: {e}")
 
