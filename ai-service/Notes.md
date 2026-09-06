@@ -269,3 +269,126 @@ Why so few lines? `fib(3)` is needed by both `fib(5)` and `fib(4)`, but it is co
 Remember: `maxsize=None` means never throw out pages. Safe for small input sets, dangerous for user input (memory keeps growing). For unknown/unlimited inputs, use `lru_cache(maxsize=...)`.
 
 > **`cache` vs `lru_cache` (one-line revision):** both remember answers. `cache` = remember everything forever. `lru_cache(maxsize=N)` = remember only last N, forget the least recently used.
+
+---
+
+## 6. Python `typing`
+
+**What it is:** a module for telling Python (and readers) what type a variable should be.
+
+**In simple words:** Python does not check types at runtime, but type hints act like labels on boxes — `x: int` means "this box holds an int". Editors catch mistakes early, and FastAPI/Pydantic use these labels to validate requests.
+
+Think of it like this: hints don't change what the code does, they describe what the code expects.
+
+### Basic containers — use lowercase generics (Python 3.9+)
+Old style `List[int]` still works, but prefer `list[int]`.
+
+```python
+x: int = 5
+names: list[str] = ["a", "b"]
+scores: dict[str, int] = {"a": 10}
+point: tuple[int, int] = (1, 2)
+unique: set[str] = {"a"}
+```
+Remember: bare `list` / `dict` means "any content". `list[str]` means "list of strings".
+
+### `Optional` / `|` — value can be missing (`None`)
+Use for nullable fields, e.g. a chunk with no score yet.
+
+```python
+from typing import Optional
+
+def find(name: str) -> Optional[str]:
+    return None  # allowed: str or None
+
+# modern shorthand (Python 3.10+), same meaning:
+def find2(name: str) -> str | None:
+    return None
+```
+Remember: `Optional[str]` = `str | None`. Always handle the `None` case.
+
+### `Union` / `|` — value can be one of several types
+
+```python
+from typing import Union
+
+def parse(v: Union[int, str]) -> str:
+    return str(v)
+
+# modern shorthand, same meaning:
+def parse2(v: int | str) -> str:
+    return str(v)
+```
+Remember: prefer `int | str` over `Union` in new code. Use `Optional` only when one option is `None`.
+
+### `Literal` — value must be one of exact strings/numbers
+Use for fixed choices, e.g. `route_taken` in our `/query` graph.
+
+```python
+from typing import Literal
+
+def answer(route_taken: Literal["simple", "multi_hop"]) -> str:
+    return route_taken
+
+answer("simple")  # ok
+# answer("weird")  # type error: must be "simple" or "multi_hop"
+```
+Remember: `Literal` is for values, `Union` is for types. `"simple"` is a value, `str` is a type.
+
+### `TypedDict` — dict with fixed keys and known value types
+Use for LangGraph state and JSON-like objects where keys are known.
+
+```python
+from typing import TypedDict
+
+class QueryState(TypedDict):
+    question: str
+    route_taken: str
+    answer: str
+
+s: QueryState = {"question": "hi", "route_taken": "simple", "answer": ""}
+# s = {"question": "hi"}  # type error: missing keys
+```
+Remember: `TypedDict` = dict shape check. Keys are fixed, values are typed. Use `NotRequired` (or `total=False`) for keys that may be missing:
+
+```python
+from typing import NotRequired
+
+class Chunk(TypedDict):
+    text: str
+    score: NotRequired[float]  # may or may not be present
+```
+
+### `Any` — turn off checking (escape hatch)
+
+```python
+from typing import Any
+
+def log(v: Any) -> None:
+    print(v)  # accepts anything, no checking
+```
+Remember: `Any` silences the checker. Useful for truly unknown data (raw JSON), harmful everywhere else — it hides bugs.
+
+### `Final` — constant, must not be reassigned
+
+```python
+from typing import Final
+
+SERVICE_TOKEN: Final[str] = "abc123"
+# SERVICE_TOKEN = "x"  # type error
+```
+Remember: `Final` is a promise to readers, not runtime protection — Python can still reassign it, checkers will complain.
+
+### `Callable` — a function passed as input
+
+```python
+from typing import Callable
+
+def run(fn: Callable[[int], int]) -> int:
+    return fn(5)  # fn takes one int, returns one int
+```
+Remember: `Callable[[inputs...], output]`. `Callable[[int, str], bool]` = takes `(int, str)`, returns `bool`.
+
+> **One-line revision:** `Optional` = may be None. `Union`/`|` = one of many types. `Literal` = one of exact values. `TypedDict` = dict with fixed keys (LangGraph state). `Any` = skip checks. `Final` = don't reassign. `Callable` = a function argument.
+
+---
