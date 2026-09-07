@@ -13,15 +13,17 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String?
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  email         String         @unique
+  emailVerified Boolean        @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   sessions      Session[]
   accounts      Account[]
+  documents     Document[]
+  conversations Conversation[]
 }
 
 model Session {
@@ -60,4 +62,53 @@ model Verification {
   expiresAt  DateTime
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+enum DocumentStatus {
+  pending
+  chunking
+  embedded
+  failed
+}
+
+enum MessageRole {
+  user
+  assistant
+}
+
+model Document {
+  id         String         @id @default(cuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  sourceType String // 'markdown' | 'text' (MVP only)
+  status     DocumentStatus @default(pending)
+  chunkCount Int            @default(0)
+  createdAt  DateTime       @default(now())
+
+  @@index([userId])
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String    @default("New chat")
+  messages  Message[]
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           MessageRole
+  content        String       @db.Text
+  citations      Json?
+  routeTaken     String?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
 }
