@@ -349,15 +349,30 @@ class QueryState(TypedDict):
 s: QueryState = {"question": "hi", "route_taken": "simple", "answer": ""}
 # s = {"question": "hi"}  # type error: missing keys
 ```
-Remember: `TypedDict` = dict shape check. Keys are fixed, values are typed. Use `NotRequired` (or `total=False`) for keys that may be missing:
+Remember: `TypedDict` = dict shape check. Keys are fixed, values are typed. By default every key is required.
+
+1. `total=False` — make ALL fields optional at once:
+
+```python
+class DraftState(TypedDict, total=False):
+    question: str
+    answer: str
+
+d1: DraftState = {}  # ok, nothing required
+d2: DraftState = {"question": "hi"}  # ok
+```
+Remember: `total=True` (default) = all keys required. `total=False` = no key required.
+
+2. Make ONE field optional with `NotRequired`:
 
 ```python
 from typing import NotRequired
 
 class Chunk(TypedDict):
     text: str
-    score: NotRequired[float]  # may or may not be present
+    score: NotRequired[float]  # this key alone may be missing
 ```
+Remember: `NotRequired` = key may be absent. `| None` = key must be present, but value can be `None`. Combine both if needed: `score: NotRequired[float | None]`.
 
 ### `Any` — turn off checking (escape hatch)
 
