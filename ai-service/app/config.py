@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     EMBEDDING_DIM: int = 768
     QDRANT_COLLECTION: str = "doc_chunks"
 
+    LLM_MODEL: str = "gemini-2.0-flash"
+    LLM_TEMPERATURE: float = 0.0
+
     model_config = SettingsConfigDict(env_file='app/.env')
 
 
