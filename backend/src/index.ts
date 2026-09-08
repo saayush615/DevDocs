@@ -3,6 +3,7 @@ import cors from 'cors';
 import express, { type Express, type Request, type Response } from 'express';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.js';
+import { notFound, errorHandler } from './middleware/errorHandler.js';
 
 const app: Express = express();
 const port = 3001;
@@ -21,6 +22,9 @@ app.use(express.json());
 app.get('/', (_req: Request, res: Response) => {
   res.send('Welcome to DevDocs');
 });
+
+app.use(notFound);
+app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
