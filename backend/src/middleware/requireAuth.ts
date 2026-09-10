@@ -1,5 +1,3 @@
-// Auth guard: every private route uses this. Reads the better-auth
-// session cookie, rejects strangers with 401, attaches userId for the route.
 import type { NextFunction, Request, Response } from "express";
 import { fromNodeHeaders } from 'better-auth/node';
 import { auth } from "../lib/auth.js";
