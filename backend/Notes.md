@@ -178,3 +178,56 @@ Remember: `@db.Text` = long-text column for big content. `@relation` = link betw
 
 ---
 
+## 2. `Buffer` — Node.js binary data in memory
+
+**What it is:** `Buffer` is a Node.js core type for holding **raw binary data** (a sequence of bytes) in memory. Files arrive as bytes, not strings — `Buffer` is the in-between box before you decode them.
+
+**In simple words:** upload gives you bytes → `Buffer` holds them in RAM → `.toString('utf-8')` turns them into readable text.
+
+---
+
+### A. How it flows in our code
+
+```ts
+// documents.controller.ts — multer reads the uploaded file into memory
+req.file.buffer; // Buffer (raw bytes of the file)
+
+// upload.service.ts
+export async function ingestUploadedFile(userId: string, originalname: string, buffer: Buffer) {
+  const content = buffer.toString('utf-8').trim(); // bytes → string
+  // ... content goes to FastAPI for chunking/embedding
+}
+```
+
+1. **Multer** puts the uploaded file on `req.file`, with `buffer` = raw bytes (memory storage, never touches disk).
+2. Service takes `buffer: Buffer` as a parameter type — TypeScript annotation saying "this must be a Buffer".
+3. `buffer.toString('utf-8')` decodes bytes → string, which is sent to the AI service.
+
+### B. Mental picture
+
+```
+.md file on disk:   [bytes: 48 65 6C 6C 6F 20 57 6F 72 6C 64]
+                       ↓ upload arrives
+In memory (Buffer): <Buffer 48 65 6c 6c 6f 20 57 6f 72 6c 64>
+                       ↓ .toString('utf-8')
+As a string:        "Hello World"
+```
+
+### C. Common `Buffer` methods
+
+```ts
+buffer.toString('utf-8'); // bytes → string (what we use)
+buffer.length; // how many bytes
+Buffer.from('hello'); // string → Buffer (reverse direction)
+Buffer.concat([buf1, buf2]); // merge multiple buffers
+```
+
+### D. Docs
+
+- Node.js Buffer API: https://nodejs.org/docs/latest/api/buffer.html
+- Multer memory storage (`req.file.buffer`): https://github.com/expressjs/multer#memorystorage
+
+Remember: `Buffer` = box of raw bytes in RAM. Files aren't text until you decode them.
+
+---
+
