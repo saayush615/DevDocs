@@ -11,7 +11,7 @@ export async function uploadDocument(req: AuthRequest, res: Response) {
   res.status(200).json({
     success: true,
     message: 'Document embedded',
-    data: done
+    data: done,
   });
 }
 
@@ -24,6 +24,6 @@ export async function listDocuments(req: AuthRequest, res: Response) {
   res.status(200).json({
     success: true,
     message: 'Document fetched',
-    data: docs
-  });;
+    data: docs,
+  });
 }

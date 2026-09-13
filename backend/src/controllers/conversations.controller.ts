@@ -9,10 +9,10 @@ export async function createConversation(req: AuthRequest, res: Response) {
   const parsed = conversationBodySchema.safeParse(req.body);
   const title = parsed.success ? (parsed.data.title ?? 'New chat') : 'New chat';
   const conv = await prisma.conversation.create({ data: { userId: req.userId, title } });
-  res.status(201).json({ 
-    success: true, 
-    message: 'Conversation created', 
-    data: conv 
+  res.status(201).json({
+    success: true,
+    message: 'Conversation created',
+    data: conv,
   });
 }
 
@@ -22,10 +22,10 @@ export async function listConversations(req: AuthRequest, res: Response) {
     orderBy: { createdAt: 'desc' },
     select: { id: true, title: true, createdAt: true },
   });
-  res.status(200).json({ 
-    success: true, 
-    message: 'Conversations fetched', 
-    data: list 
+  res.status(200).json({
+    success: true,
+    message: 'Conversations fetched',
+    data: list,
   });
 }
 
@@ -36,10 +36,10 @@ export async function getConversation(req: AuthRequest, res: Response) {
     include: { messages: { orderBy: { createdAt: 'asc' } } },
   });
   if (!conv) throw Errors.notFound('Conversation not found');
-  res.status(200).json({ 
-    success: true, 
-    message: 'Conversation fetched', 
-    data: conv 
+  res.status(200).json({
+    success: true,
+    message: 'Conversation fetched',
+    data: conv,
   });
 }
 
@@ -49,9 +49,9 @@ export async function deleteConversation(req: AuthRequest, res: Response) {
   });
   if (!conv) throw Errors.notFound('Conversation not found');
   await prisma.conversation.delete({ where: { id: conv.id } });
-  res.status(200).json({ 
-    success: true, 
-    message: 'Conversation deleted', 
-    data: null 
+  res.status(200).json({
+    success: true,
+    message: 'Conversation deleted',
+    data: null,
   });
 }
