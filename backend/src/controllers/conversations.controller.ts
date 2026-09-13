@@ -31,8 +31,11 @@ export async function listConversations(req: AuthRequest, res: Response) {
 
 export async function getConversation(req: AuthRequest, res: Response) {
   // findFirst({id, userId}) = ownership check in one query. Never findUnique by id alone.
+  const { id } = req.params;
+  if (typeof id !== 'string') throw Errors.notFound('Conversation not found');
+  
   const conv = await prisma.conversation.findFirst({
-    where: { id: req.params.id, userId: req.userId },
+    where: { id, userId: req.userId },
     include: { messages: { orderBy: { createdAt: 'asc' } } },
   });
   if (!conv) throw Errors.notFound('Conversation not found');
@@ -44,8 +47,11 @@ export async function getConversation(req: AuthRequest, res: Response) {
 }
 
 export async function deleteConversation(req: AuthRequest, res: Response) {
+  const { id } = req.params;
+  if (typeof id !== 'string') throw Errors.notFound('Conversation not found');
+
   const conv = await prisma.conversation.findFirst({
-    where: { id: req.params.id, userId: req.userId },
+    where: { id, userId: req.userId },
   });
   if (!conv) throw Errors.notFound('Conversation not found');
   await prisma.conversation.delete({ where: { id: conv.id } });

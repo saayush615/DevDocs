@@ -14,7 +14,7 @@ function headers() {
 // Ingest
 export interface IngestResult {
   status: string;
-  chunk_created: number;
+  chunks_created: number;
 }
 
 interface ingestInput {
