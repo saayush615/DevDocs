@@ -40,5 +40,7 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true
-  }
+  },
+  "include": ["src"],   // ← only compile the app code; excludes prisma.config.ts at root
+  "exclude": ["node_modules", "dist"]
 }

@@ -3,3 +3,4 @@ dist
 pnpm-lock.yaml
 src/generated/**
 prisma.config.ts
+*.md

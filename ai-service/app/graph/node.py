@@ -5,6 +5,21 @@ from app.services.vector_store import search_chunks
 # Exact fallback — never guess, say this instead.
 FALLBACK_ANSWER = "I don't have enough information in the available documents."
 
+def _extract_text(content) -> str:
+    """Flash returns str OR [ {'type':'text','text':...} | obj with .text ]."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for b in content:
+            if isinstance(b, str):
+                parts.append(b)
+            elif isinstance(b, dict):
+                parts.append(str(b.get("text", "")))
+            else:
+                parts.append(str(getattr(b, "text", "") or ""))
+        return "".join(parts)
+    return str(content)
 
 def classify_q(state: AgentState) -> dict:
     """Decide routing: 'simple' (one lookup) vs 'multi_hop' (compare/synthesize).
@@ -24,7 +39,7 @@ def classify_q(state: AgentState) -> dict:
         f"Question: {question}\nAnswer:"
     )
     try:
-        raw = llm.invoke(prompt).content.strip().upper()
+        raw = _extract_text(llm.invoke(prompt).content).strip().upper()
         route = "multi_hop" if "MULTI" in raw else "simple"
     except Exception:
         # Safe default: treat as simple so retrieval still runs.
@@ -73,7 +88,7 @@ def simple_rag(state: AgentState) -> dict:
         f"Question: {question}\n"
         "Answer (cite sources inline like [doc_id:chunk_index]):"
     )
-    draft = llm.invoke(prompt).content.strip()
+    draft = _extract_text(llm.invoke(prompt).content).strip()
 
     citations = [
         {
@@ -109,7 +124,7 @@ def grounding_check(state: AgentState) -> dict:
         f"Question: {question}\nCONTEXT:\n{context}\n\nANSWER:\n{draft}\nVerdict:"
     )
     try:
-        verdict = llm.invoke(prompt).content.strip().upper()
+        verdict = _extract_text(llm.invoke(prompt).content).strip().upper()
         grounded = "NOT_GROUNDED" not in verdict and "GROUNDED" in verdict
     except Exception:
         grounded = False  # fail closed: when in doubt, admit ignorance

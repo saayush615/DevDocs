@@ -18,6 +18,7 @@ store = QdrantVectorStore(
     client=client,
     collection_name=settings.QDRANT_COLLECTION,
     embedding=doc_embeddings,
+    validate_collection_config=False,
 )
 
 
@@ -111,7 +112,7 @@ def search_chunks(
     user_filter = Filter(
         must=[
             FieldCondition(
-                key="user_id",
+                key="metadata.user_id",
                 match=MatchValue(value=user_id),
             )
         ]
