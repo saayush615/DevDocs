@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
+/* Tell Tailwind to use class-based dark mode instead of media query.
+   This means dark: utilities activate when an ancestor has class="dark". */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  --background: #09090b; /* zinc-950 — the main page background */
+  --foreground: #fafafa; /* zinc-50 — primary text color */
 }
 
 @theme inline {
@@ -12,15 +17,35 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Scrollbar Styling ─────────────────────────────────────────────── */
+/* Thin, subtle scrollbars that blend with the dark theme. */
+
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
+
+::-webkit-scrollbar {
+  width: 6px; /* Chrome/Safari/Edge */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+ /* Base Body */
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
