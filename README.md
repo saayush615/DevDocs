@@ -1,66 +1,108 @@
 # DevDocs Copilot
 
-## 1. What is this project?
+An internal knowledge-assistant web app. Engineers upload docs (`.md`, `.txt`, and more in V1) and ask questions in plain English. The system retrieves relevant chunks, answers with citations, and grounds every response in source material — no guessing.
 
-DevDocs Copilot is an internal knowledge assistant. Instead of engineers digging through scattered READMEs, wikis, and old docs to find answers, they upload their documentation once and then just ask questions in plain English. The system finds the relevant parts of the docs and answers with citations, so people trust where the answer came from. It also knows when a question needs digging through multiple documents instead of just one, and it double-checks its own answer against the source docs before replying, instead of guessing.
+**Target user:** Engineers and new hires who need fast, cited answers from internal documentation.
 
-## 2. Tech Stack
+**Detailed spec:** [`docs/PRD.md`](docs/PRD.md) is the source of truth for architecture, scope, and phase boundaries.
 
-- **Frontend:** Next.js (TypeScript, App Router)
-- **Backend:** Node.js + Express 5 (TypeScript, better-auth)
-- **AI Service:** FastAPI (Python) + LangGraph
-- **Vector DB:** Qdrant
-- **Database:** PostgreSQL
-- **Embeddings:** Gemini Embedding API
-- **LLM:** Groq / OpenAI (configurable)
+---
 
-## 3. Architecture
+## Tech Stack
+
+| Layer | Tech |
+|---|---|
+| Frontend | Next.js (TypeScript, App Router, react-hook-form + zod) |
+| Backend | Node.js + Express 5 (TypeScript, better-auth) |
+| AI Service | FastAPI (Python) + LangGraph |
+| Vector DB | Qdrant |
+| Database | PostgreSQL (Prisma ORM) |
+| Embeddings | Gemini Embedding API |
+| LLM | Configurable (`LLM_MODEL` env var) |
+
+---
+
+## Architecture
 
 ```
-┌─────────────┐        ┌──────────────────┐        ┌───────────────────┐
-│  Next.js     │ HTTPS  │   Node.js (BFF)   │ HTTPS  │   FastAPI (AI svc) │
-│  - Chat UI   │──────► │  - Auth (better- │──────► │  - /ingest         │
-│  - Upload UI │ SSE    │    auth cookies) │ stream │  - /query (agent)  │
-│  - Admin UI  │◄────── │  - Postgres       │◄────── │  - LangGraph graph │
-└─────────────┘        └────────┬──────────┘        └─────────┬──────────┘
-                                 │                              │
-                                 ▼                              ▼
-                        ┌──────────────────┐         ┌───────────────────┐
-                        │ Postgres         │         │   Qdrant (vector) │
-                        │ users, documents,│         │                   │
-                        │ conversations,   │         └───────────────────┘
-                        │ messages         │
-                        └──────────────────┘
+Next.js (frontend)            External channels (V2): Slack / Discord
+   │ HTTPS (session cookie)          │ (OAuth-linked identities)
+   ▼                                 ▼
+Node.js (BFF / backend) ◄───────────┘
+   │  Auth, quotas, system of record
+   │  Calls FastAPI with a service-to-service token
+   ▼
+FastAPI (AI service, stateless)
+   │  /ingest — chunk + embed + upsert to Qdrant
+   │  /query  — LangGraph agent (route, retrieve, ground, answer)
+   ▼
+Qdrant (vector DB)
 ```
 
-Next.js never talks to FastAPI directly — every request goes through Node, which handles auth and owns the data. Node calls FastAPI with a service-to-service token; FastAPI trusts only requests carrying it.
+**Non-negotiable rule:** the frontend and any external channel never call the AI service directly. All requests go through Node.
 
-Key rules (see `docs/PRD.md` §3-4 for details):
+---
 
-- **Auth:** email + password via better-auth. Sessions are better-auth cookies — not hand-rolled JWTs.
-- **Streaming:** chat responses stream token-by-token (SSE) from FastAPI through Node to the client — never buffered.
-- **Isolation:** every Qdrant query is filtered by `user_id` — no cross-user data leakage.
-- **Grounded answers:** `/query` runs a LangGraph graph (`classify_q → simple_rag → grounding_check → final_answer`). Every answer includes citations (`document_id`, `chunk_index`, snippet) and `route_taken` (`simple` | `multi_hop`). If the answer isn't supported by retrieved chunks, the agent says "I don't have enough information" — never guesses.
+## MVP (Delivered)
 
-## 4. Current Status
+- [x] User auth (signup/login) via better-auth
+- [x] Upload `.md` / `.txt` with status transitions (`pending → chunking → embedded | failed`)
+- [x] Chunk + embed into Qdrant, scoped by `user_id`
+- [x] Chat with streamed, cited answers (SSE)
+- [x] Conversation history persisted per user
+- [x] Query routing (`simple` vs `multi_hop`) + grounding check — falls back to "I don't have enough information" when unsupported
 
-- **Done:** User signup/login via better-auth (session cookies, persisted in Postgres).
-- **Not yet built:** document upload/ingestion, Qdrant vector store, LangGraph agent, chat + SSE streaming, conversation history. The AI service (`ai-service/`) is currently a FastAPI stub, and `docker-compose.yml` runs only Postgres (no Qdrant container yet).
+---
 
-## 5. MVP TODO
+## Roadmap
 
-- [x] User signup/login (better-auth, session cookies)
-- [ ] Upload document (`.md` / `.txt`), chunk + embed, store in Qdrant
-- [ ] Chat endpoint: ask question, get streamed answer with citations
-- [ ] Agent routes simple vs. multi-hop questions
-- [ ] Grounding check before returning an answer
-- [ ] Conversation history saved and reloadable
+### V0 — Guardrails (next)
+- [ ] Per-user daily quotas (queries, prompt tokens, completion tokens, embedding tokens)
+- [ ] Lifetime caps (documents, conversations) + per-file size cap
+- [ ] Burst rate limiting per user/IP on chat, upload, and auth
+- [ ] `UsageDaily` metering — FastAPI reports usage, Node enforces budgets
+- [ ] `429` surfaced in the UI before any token is spent
 
-## 6. Local development
+### V1 — Knowledge
+- [ ] Org tenancy insurance (`organization_id` on all tables + Qdrant filter)
+- [ ] PDF, GitHub repo, and URL ingestion with provenance-rich citations (page/heading/URL)
+- [ ] Multi-hop RAG (sub-question decomposition, parallel retrieval, synthesis)
+- [ ] Eval harness + per-answer feedback loop
 
-Each package installs and runs independently with `pnpm` (not a pnpm workspace).
+### V2 — Everywhere
+- [ ] Slack adapter (Bolt) + Discord adapter (`discord.js`)
+- [ ] OAuth identity linking; unlinked identities refused
+- [ ] Non-streamed replies (typing indicator + final message)
 
-1. Start Postgres: `docker compose up -d` (Postgres 17, `devdocs`/`devdocs`/`devdocs` on port 5432).
-2. Backend (`backend/`): copy `.env.example` → `.env`, run `pnpm install`, then `pnpm prisma generate` (generated client is gitignored) and `pnpm dev` — port **3001**.
-3. Frontend (`frontend/`): copy `.env.example` → `.env`, run `pnpm install`, then `pnpm dev` — port **3000**. The auth client calls the backend directly via `NEXT_PUBLIC_BACKEND_URL` (no Next proxy).
-4. AI service (`ai-service/`): use the existing Python 3.14 venv at `ai-service/.venv` and run `uvicorn app.main:app` from `ai-service/`.
+### V3 — Teams
+- [ ] Multi-tenant orgs with onboarding/invites
+- [ ] Departments (scoping) + roles (permissions) with a permission matrix
+- [ ] Access-scoped retrieval at the Qdrant query level
+
+### V4 — Connect
+- [ ] MCP server on Node (`search_docs`, `get_document`, `query`, `create_flag`)
+- [ ] External agents can query org knowledge with correct isolation
+
+**Explicitly deferred:** WhatsApp, semantic memory layer (mem0-style), signup abuse guard (email verification/IP throttling), BM25/cross-encoder retrieval upgrades.
+
+---
+
+## Local Development
+
+Each package runs independently with `pnpm` (not a workspace).
+
+```bash
+# 1. Start Postgres + Qdrant
+docker compose up -d
+
+# 2. Backend (port 3001)
+cd backend && cp .env.example .env && pnpm install
+pnpm prisma generate && pnpm dev
+
+# 3. Frontend (port 3000)
+cd frontend && cp .env.example .env && pnpm install && pnpm dev
+
+# 4. AI service (port 8000)
+cd ai-service && source .venv/bin/activate
+uvicorn app.main:app
+```
