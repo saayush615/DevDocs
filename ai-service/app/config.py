@@ -5,12 +5,13 @@ class Settings(BaseSettings):
 
     QDRANT_URL: str = "http://localhost:6333"
     GOOGLE_API_KEY: str
+    GROQ_API_KEY: str
     SERVICE_TOKEN: str
     EMBEDDING_MODEL: str = "gemini-embedding-001"
     EMBEDDING_DIM: int = 768
     QDRANT_COLLECTION: str = "doc_chunks"
 
-    LLM_MODEL: str = "gemini-3.6-flash"
+    LLM_MODEL: str
     LLM_TEMPERATURE: float = 0.0
 
     model_config = SettingsConfigDict(env_file='app/.env')

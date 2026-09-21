@@ -7,19 +7,19 @@ Why a factory?
 """
 from functools import lru_cache
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 
 from app.config import settings
 
 
 @lru_cache(maxsize=1)
-def get_llm() -> ChatGoogleGenerativeAI:
-    """Build (once) and return the shared chat LLM.
-
-    Returns:
-        Configured Gemini chat model ready for .invoke() / .ainvoke().
+def get_llm() -> ChatGroq:
     """
-    return ChatGoogleGenerativeAI(
+    Returns:
+        Configured Groq chat model ready for .invoke() / .ainvoke().
+    """
+    return ChatGroq(
         model=settings.LLM_MODEL,
-        google_api_key=settings.GOOGLE_API_KEY,
+        api_key=settings.GROQ_API_KEY,
+        temperature=settings.LLM_TEMPERATURE
     )
