@@ -60,7 +60,7 @@ Qdrant (vector DB)
 ## Roadmap
 
 ### V0 — Guardrails (next)
-- [ ] Groq chat LLM (`langchain-groq`); Gemini retained for embeddings
+- [x] Groq chat LLM (`langchain-groq`); Gemini retained for embeddings
 - [ ] LangSmith tracing (per-node spans, route, grounding verdict, token usage)
 - [ ] Safety guardrails — LLM Guard `input_guard` / `output_guard` + Guardrails AI grounding validator
 - [ ] RAGAS evals (faithfulness, context precision/recall) via LangSmith, over a golden Q&A set
