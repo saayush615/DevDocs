@@ -39,12 +39,18 @@ async def query_json(request: QueryRequest, _: str = Depends(verify_token)) -> Q
     Returns:
         {answer, citations, route_taken}
     """
+    trace_config = {
+        "run_name": "devdocs-query",
+        "tags": ["query", "json"],
+        "metadata": {"conversation_id": request.conversation_id},  # skip user_id (PII)
+    }
+    
     result = await _graph.ainvoke({
         "question": request.question,
         "user_id": request.user_id,  # <-- isolation key, flows into Qdrant filter
         "history": [m.model_dump() for m in request.history],
         "top_k": request.top_k,
-    })
+    }, config=trace_config)
     return _to_response(result)
 
 
@@ -54,12 +60,17 @@ async def query_stream(request: QueryRequest, _: str = Depends(verify_token)):
 
     Node proxies this to the browser EventSource. Frontend appends tokens.
     """
+    trace_config = {
+        "run_name": "devdocs-query-stream",
+        "tags": ["query", "stream"],
+        "metadata": {"conversation_id": request.conversation_id},  # skip user_id (PII)
+    }
     result = await _graph.ainvoke({
         "question": request.question,
         "user_id": request.user_id,
         "history": [m.model_dump() for m in request.history],
         "top_k": request.top_k,
-    })
+    }, config=trace_config)
     response = _to_response(result)
 
     async def event_generator():
