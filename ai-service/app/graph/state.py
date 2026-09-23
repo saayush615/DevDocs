@@ -19,7 +19,8 @@ class AgentState(TypedDict, total=False):
     history: list[dict]    # [{"role":..., "content":...}] prior turns
     top_k: int             # retrieval depth
 
-    route: str             # "simple" | "multi_hop" — set by classify_q
+    blocked: bool          # True when input_guard rejects the question
+    route: str             # "simple" | "multi_hop" | "blocked"
     chunks: list[dict]     # raw hits from search_chunks()
     draft_answer: str      # LLM answer BEFORE grounding check
     grounded: bool         # grounding_check verdict
