@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
     LANGSMITH_API_KEY: str | None = None
     LANGSMITH_PROJECT: str = "devdocs-copilot"
+    
+    # Guardrails
+    GUARD_INPUT_ENABLED: bool = True
+    GUARD_OUTPUT_ENABLED: bool = True
+    GUARD_BANNED_WORDS: str = ""
 
     model_config = SettingsConfigDict(env_file='app/.env')
 
