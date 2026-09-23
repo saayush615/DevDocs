@@ -4,7 +4,8 @@
 
 | Version | Date | Status | Summary |
 |---|---|---|---|
-| 1.1.0 | 2026-09-21 | **Current** | V0 refined. Adds to V0: LLM provider swap to **Groq** (Gemini retained for embeddings), **LangSmith** observability, safety guardrails (**LLM Guard** input/output nodes + **Guardrails AI** grounding validator), and **RAGAS** evals (moved out of V1). Eval harness removed from V1; per-answer feedback stays. |
+| 1.2.0 | 2026-09-23 | **Current** | V0 guardrails redesigned. Drops **LLM Guard** and **RAGAS** evals from V0. Safety guardrails now use a regex prompt-injection filter + **Guardrails AI** `ProfanityFree`/`BanList` validators (`input_guard`/`output_guard`); `grounding_check` keeps the existing simple custom validator. |
+| 1.1.0 | 2026-09-21 | Superseded | V0 refined. Adds to V0: LLM provider swap to **Groq** (Gemini retained for embeddings), **LangSmith** observability, safety guardrails (**LLM Guard** input/output nodes + **Guardrails AI** grounding validator), and **RAGAS** evals (moved out of V1). Eval harness removed from V1; per-answer feedback stays. |
 | 1.0.0 | 2026-09-17 | Superseded | Roadmap rework. MVP marked **DELIVERED**. Phase plan added: **V0 Guardrails → V1 Knowledge → V2 Everywhere → V3 Teams → V4 Connect**. Adds per-user quotas + usage metering, org tenancy insurance, provenance-rich citations (page/heading/URL), multi-hop RAG, chat integrations, RBAC, and an MCP server. |
 
 **Source of truth:** This document is the source of truth for architecture, scope, and phase boundaries. Read it fully before implementing anything. File references (e.g. `backend/src/...`) point at repo paths; re-verify against the live tree if a path drifts.
@@ -16,7 +17,7 @@
 ## 0. Status Summary (at a glance)
 
 - **MVP: DELIVERED** — auth, md/txt upload, streamed cited chat, grounding check, persisted conversations. See §8 for the checklist.
-- **Active phase: V0 Guardrails** — per-user token/query/upload quotas + burst rate limiting (free-host abuse protection), plus observability (LangSmith), safety guardrails (LLM Guard + Guardrails AI), and RAGAS evals.
+- **Active phase: V0 Guardrails** — per-user token/query/upload quotas + burst rate limiting (free-host abuse protection), plus observability (LangSmith) and safety guardrails (Guardrails AI `ProfanityFree`/`BanList` + regex input filter).
 - **LLM provider:** chat/generation runs on **Groq**; **Gemini remains the embedding model** (vector dimension unchanged).
 - **Planned:** V1 Knowledge, V2 Everywhere, V3 Teams, V4 Connect (details in §9).
 - **Explicitly deferred (shelf):** global daily token envelope, signup abuse guard (email verification / IP throttling), WhatsApp integration, mem0-style memory layer.
@@ -48,8 +49,8 @@
 ### 2.2 Goals (V0 — Guardrails, build next)
 - **LLM provider:** chat/generation on **Groq** (`langchain-groq`); Gemini stays the embedding model only.
 - **Observability:** **LangSmith** traces every graph run — per-node spans, chosen route, grounding verdict, and token usage.
-- **Safety guardrails:** **LLM Guard** `input_guard` node before `classify_q`; **Guardrails AI** `grounded` validator inside `grounding_check`; optional **LLM Guard** `output_guard` node after `final_answer`. All fail closed.
-- **Evals:** **RAGAS** (faithfulness, context precision/recall) over a golden Q&A set, run via LangSmith `evaluate()`/`aevaluate()`, plus route-correctness and grounding-verdict checks.
+- **Safety guardrails:** `input_guard` node before `classify_q` (regex prompt-injection filter + **Guardrails AI** `ProfanityFree` validator); `output_guard` node after `final_answer` (**Guardrails AI** `ProfanityFree` + `BanList`). Blocks short-circuit before any token spend (`route_taken: "blocked"`); flagged answers are replaced whole with the fallback — never partially redacted. All fail closed.
+- `grounding_check` keeps the existing simple custom validator (deterministic fast paths + single LLM judge call), fail closed.
 - Per-user daily quotas: queries, prompt tokens, completion tokens, embedding tokens.
 - Per-user lifetime caps: document uploads, conversations; plus a per-file size cap.
 - Burst rate limiting per user/IP on chat, upload, and auth.
@@ -60,7 +61,7 @@
 - Provenance-rich citations: `page`, `heading`, or `url` attached per citation.
 - Multi-hop RAG: sub-question decomposition, parallel retrieval workers, synthesis.
 - Org tenancy insurance: `organization_id` on Postgres + Qdrant payload/filter, even while effectively single-tenant.
-- Per-answer feedback loop. (The eval harness moved to V0.)
+- Per-answer feedback loop.
 
 ### 2.4 Goals (V2 — Everywhere)
 - Chat integrations: Slack (first), Discord (second), both routing through the shared Node chat core.
@@ -137,7 +138,7 @@ Qdrant (vector DB)
   - `/ingest`: chunk incoming text (heading-aware; page-boundary-safe for PDFs), embed, upsert to Qdrant with payload `{document_id, user_id, organization_id, chunk_index, content_preview, title, source_type, source_url, page?, heading?}`. Responds with `usage.embedding_tokens`.
   - `/query`: run the LangGraph agent (§4) and stream the final answer + citations back to Node; the final stream event includes `usage.{prompt_tokens, completion_tokens}`.
   - **Observability (V0):** every graph run emits a **LangSmith** trace (per-node spans, route, grounding verdict, token usage). Enabled by env (`LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`).
-  - **Safety guardrails (V0):** `input_guard` (LLM Guard) screens the question before classification; `grounding_check` delegates its verdict to a **Guardrails AI** `grounded` validator; `output_guard` (LLM Guard) optionally screens the final answer. Guard nodes are env-toggleable and fail closed.
+  - **Safety guardrails (V0):** `input_guard` screens the question (regex prompt-injection filter + **Guardrails AI** `ProfanityFree`) before classification; `grounding_check` keeps the existing simple custom validator; `output_guard` screens the final answer (**Guardrails AI** `ProfanityFree` + `BanList`, terms from `GUARD_BANNED_WORDS`). Input/output guard nodes are env-toggleable and fail closed.
 - Embedding model: Gemini `gemini-embedding-001/002` (free tier); dimension in `settings.EMBEDDING_DIM` (`app/config.py`). **Embeddings stay on Gemini.**
 - LLM: **Groq** (`langchain-groq`, `GROQ_API_KEY`); env-configurable model (`LLM_MODEL`, `LLM_TEMPERATURE`); used for classification, answer drafting, and grounding.
 - Node is the only client. FastAPI reports usage; it enforces no policy.
@@ -177,9 +178,9 @@ input_guard ─(allowed)→ classify_q → simple_rag → grounding_check → fi
      │(blocked)
      └────────────────────────────────────────────────────────────────────────→ END
 ```
-- `input_guard` (**LLM Guard**): screens the incoming question (prompt-injection, toxicity, secrets, banned topics) before any LLM spend. On block → conditional edge straight to `END` with a canned refusal and `route_taken: "blocked"`; **zero graph tokens spent**. Toggle: `GUARD_INPUT_ENABLED`.
-- `grounding_check`: the deterministic fast paths are retained, but the judge call is delegated to a **Guardrails AI** `grounded` validator (retrieved chunks as grounding source). Still fail-closed; no `reask`/retry on a `NOT_GROUNDED` verdict (retry only on a malformed verdict). Toggle: `GUARD_GROUNDING_ENABLED`.
-- `output_guard` (**LLM Guard**, optional): screens the final answer for PII/secrets/toxicity before it is persisted; redact-or-fallback. Toggle: `GUARD_OUTPUT_ENABLED` (off by default in dev).
+- `input_guard` (regex prompt-injection filter + **Guardrails AI** `ProfanityFree`): screens the incoming question (injection phrasing, profanity) before any LLM spend. On block → conditional edge straight to `END` with a canned refusal and `route_taken: "blocked"`; **zero graph tokens spent**. Toggle: `GUARD_INPUT_ENABLED`.
+- `grounding_check`: keeps the existing simple custom validator — deterministic fast paths (no chunks / empty draft / fallback string present → not grounded) plus a single LLM judge call. Fail-closed on LLM error; no `reask`/retry.
+- `output_guard` (**Guardrails AI** `ProfanityFree` + `BanList`): screens the final answer before it is streamed/persisted. On failure the whole answer is replaced with the "not enough information" fallback — never a partially-flagged/redacted stream. Toggle: `GUARD_OUTPUT_ENABLED`; banned terms from `GUARD_BANNED_WORDS`.
 - **Observability:** LangSmith traces the whole run (node spans, `route`, `grounded`, blocked-by-guard, and token usage) with no per-node instrumentation beyond the LangChain callback.
 
 **Multi-hop graph (V1 — planned):**
@@ -193,7 +194,7 @@ classify_q → [simple_rag |
 - `synthesize`: merges sub-answers into one coherent, cited response.
 - `grounding_check` + `final_answer` are reused unchanged.
 
-**Response contract (all routes):** the answer text, citations, and `route_taken` (`simple` | `multi_hop` | `blocked`). `blocked` is returned only when `input_guard` rejects the question (no retrieval, no LLM). Stored with the assistant message (§5), used later for audit/eval.
+**Response contract (all routes):** the answer text, citations, and `route_taken` (`simple` | `multi_hop` | `blocked`). `blocked` is returned only when `input_guard` rejects the question (no retrieval, no LLM). Stored with the assistant message (§5), used later for audit.
 
 **Citation object (V1 target):**
 ```json
@@ -265,7 +266,7 @@ Stream events:
   data: {"token": "word "}          (repeated until the answer completes)
   data: {"done": true, citations: [...], route_taken: "...", usage: { prompt_tokens, completion_tokens }}
 
-POST /query   (JSON; used for chat-app replies in V2 and the eval harness in V0)
+POST /query   (JSON; used for chat-app replies in V2 and ad-hoc testing)
 Request:  same body as /query/stream
 Response: { answer, citations, route_taken, usage }
 ```
@@ -295,8 +296,8 @@ FastAPI must never be called from the frontend directly. All FastAPI endpoints r
 - **Auth:** email + password via better-auth; passwords hashed by better-auth; sessions are better-auth cookies (not hand-rolled JWTs). Node is the single auth boundary — better-auth never runs in the frontend.
 - **Isolation:** all retrieval filtered by `organization_id` and `user_id` at the Qdrant query level — no cross-tenant/cross-user data leakage, ever. V3 adds department/role markers to this filter.
 - **Quota/cost control (V0):** per-user daily budgets and lifetime caps, enforced by Node before work starts; FastAPI reports real usage; reject with `429` rather than cutting a stream.
-- **Observability (V0):** LangSmith traces every graph run (per-node spans, route, grounding verdict, token usage); eval runs (`evaluate()`/`aevaluate()`) are recorded against a golden set.
-- **Safety guardrails (V0):** input is screened before any LLM spend (`input_guard`), grounding is enforced by a Guardrails AI validator, and output is optionally screened before persistence. Guard nodes fail closed and are env-toggleable.
+- **Observability (V0):** LangSmith traces every graph run (per-node spans, route, grounding verdict, token usage).
+- **Safety guardrails (V0):** input is screened before any LLM spend (`input_guard`), grounding is enforced by the existing simple custom validator, and output is screened before streaming/persistence (`output_guard`). Guard nodes fail closed and are env-toggleable.
 - **Streaming:** web chat streams token-by-token via SSE FastAPI → Node → client. Chat-app (V2) replies are non-streamed (typing + final message).
 - **Resilience:** ingestion failures set `documents.status = 'failed'`, visible in the UI — never silently dropped. ACL refresh failure (V3) locks a document out (leak-closed default).
 - **Security:** URL ingestion (V1) must include SSRF protection (block private/internal ranges), size caps, and content-hash dedup.
@@ -323,19 +324,19 @@ Phase order is intentional and dependency-driven. Each phase is complete when it
 ### V0 — Guardrails (next)
 - **Scope:**
   - (a) **LLM provider swap:** chat/generation on Groq (`langchain-groq`, `GROQ_API_KEY`); Gemini retained as the embedding model only (dimension unchanged, no re-embed).
-  - (b) **Observability:** LangSmith tracing on every graph run (per-node spans, route, grounding verdict, token usage); golden Q&A set + RAGAS evals (`faithfulness`, `context precision/recall`) via LangSmith `evaluate()`/`aevaluate()`, plus route-correctness and grounding-verdict checks.
-  - (c) **Safety guardrails:** `input_guard` (LLM Guard) before `classify_q` with a block-to-`END` edge; Guardrails AI `grounded` validator inside `grounding_check` (fast paths retained, fail closed); optional `output_guard` (LLM Guard) after `final_answer`. All env-toggleable.
+  - (b) **Observability:** LangSmith tracing on every graph run (per-node spans, route, grounding verdict, token usage).
+  - (c) **Safety guardrails:** `input_guard` (regex prompt-injection filter + Guardrails AI `ProfanityFree`) before `classify_q` with a block-to-`END` edge; existing simple custom `grounding_check` retained; `output_guard` (Guardrails AI `ProfanityFree` + `BanList`) after `final_answer`. Input/output guards env-toggleable; both fail closed.
   - (d) **Usage reporting:** per-node `usage_metadata` aggregated in graph state → `usage` in FastAPI `/query`, `/query/stream` final event, and `/ingest` (`embedding_tokens`).
   - (e) **Quotas + rate limits (Node):** per-user daily quota guard (queries, prompt tokens, completion tokens, embedding tokens) + lifetime caps (documents, conversations) + per-file size cap; per-user/per-IP burst rate limits on chat, upload, and auth; `UsageDaily` metering; `429` surfaced in the UI before work starts.
-- **Config (.env):** `GROQ_API_KEY`, `GOOGLE_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, `GUARD_INPUT_ENABLED`, `GUARD_GROUNDING_ENABLED`, `GUARD_OUTPUT_ENABLED`, `QUOTA_MAX_QUERIES_PER_DAY=30`, `QUOTA_MAX_PROMPT_TOKENS_PER_DAY=120000`, `QUOTA_MAX_COMPLETION_TOKENS_PER_DAY=120000`, `QUOTA_MAX_EMBED_TOKENS_PER_DAY=200000`, `QUOTA_MAX_DOCUMENTS=20`, `QUOTA_MAX_CONVERSATIONS=50`, `QUOTA_MAX_FILE_MB=5`, `RATE_LIMIT_QUERIES_PER_MIN=5`, `RATE_LIMIT_UPLOADS_PER_HOUR=5`.
-- **Acceptance:** the 31st query in a day → `429` before any token is spent; FastAPI usage lands in Postgres and gates the next request; 21st upload / 51st conversation blocked with a clear message; a prompt-injection attempt is blocked by `input_guard` with zero tokens spent (`route_taken: "blocked"`); the grounding validator preserves fail-closed behavior; a baseline RAGAS eval is recorded and re-run after each guardrail change.
+- **Config (.env):** `GROQ_API_KEY`, `GOOGLE_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, `GUARD_INPUT_ENABLED`, `GUARD_OUTPUT_ENABLED`, `GUARD_BANNED_WORDS`, `QUOTA_MAX_QUERIES_PER_DAY=30`, `QUOTA_MAX_PROMPT_TOKENS_PER_DAY=120000`, `QUOTA_MAX_COMPLETION_TOKENS_PER_DAY=120000`, `QUOTA_MAX_EMBED_TOKENS_PER_DAY=200000`, `QUOTA_MAX_DOCUMENTS=20`, `QUOTA_MAX_CONVERSATIONS=50`, `QUOTA_MAX_FILE_MB=5`, `RATE_LIMIT_QUERIES_PER_MIN=5`, `RATE_LIMIT_UPLOADS_PER_HOUR=5`.
+- **Acceptance:** the 31st query in a day → `429` before any token is spent; FastAPI usage lands in Postgres and gates the next request; 21st upload / 51st conversation blocked with a clear message; a prompt-injection attempt is blocked by `input_guard` with zero tokens spent (`route_taken: "blocked"`); a profane/banned answer is swapped for the grounding fallback by `output_guard`; the grounding check preserves fail-closed behavior.
 
 ### V1 — Knowledge
 - **Scope:**
   - (a) Org tenancy insurance: `Organization` + `organization_id` on user/document/conversation + Qdrant payload/filter/index, stamped by Node.
   - (b) Provenance chunking: Node `extract.service.ts` (md/txt → PDF → GitHub repo → web URL), section/page-aware `chunker.py`, richer payload + citations (`title`, `source_type`, `source_url`, `page`, `heading`); content snapshotted at ingestion, hash dedup, SSRF guard, size caps.
   - (c) Multi-hop RAG: `multi_hop_planner → retrieve_each (fan-out ≤4) → synthesize`.
-  - (d) Per-answer feedback loop (`Message.feedback` + `POST /api/chat/:messageId/feedback`). The eval harness lives in V0.
+  - (d) Per-answer feedback loop (`Message.feedback` + `POST /api/chat/:messageId/feedback`).
 - **Acceptance:** a PDF answer cites a page; a URL answer links the source; a "compare X vs Y" question returns a synthesized, cited `multi_hop` answer; feedback is persisted per assistant message.
 
 ### V2 — Everywhere
@@ -355,8 +356,8 @@ Phase order is intentional and dependency-driven. Each phase is complete when it
 - Global daily token envelope + signup abuse guard (email verification, IP-throttled signup) — on the shelf; revisit when per-user quotas show signs of account farming.
 - WhatsApp integration — until a paid phase (Meta Business API).
 - Semantic memory layer (mem0-style) — deferred indefinitely; revisit only with a concrete problem statement.
-- Generative/hybrid retrieval upgrades (BM25 hybrid search, cross-encoder reranking) — hold until the eval harness shows the current retrieval failing; then prove improvement with evals.
+- Generative/hybrid retrieval upgrades (BM25 hybrid search, cross-encoder reranking) — on the shelf; revisit if retrieval quality becomes a measured bottleneck.
 
 ---
 
-*Last updated: 2026-09-21. This document is the source of truth for architecture and scope.*
+*Last updated: 2026-09-23. This document is the source of truth for architecture and scope.*
