@@ -12,11 +12,19 @@ import re
 # `Guard` is the container; we give it validators. `ValidationError` is raised
 # by `guard.validate()` when a validator fails with on_fail="exception".
 from guardrails import Guard
+from guardrails import settings as gr_settings
 from guardrails.errors import ValidationError
 from guardrails_ai.ban_list import BanList
 from guardrails_ai.profanity_free import ProfanityFree
 
 from app.config import settings
+
+# Guardrails hardcodes a hosted OTLP telemetry endpoint
+# (https://hty0gc1ok3.execute-api.us-east-1.amazonaws.com/v1/traces) the tracer
+# tries to reach on every validate() call. It's unreachable here, so disable
+# tracing globally and opt each guard out of metrics collection (no spans are
+# ever created -> no export attempts -> no retry/error log noise).
+gr_settings.disable_tracing = True
 
 # 1) Prompt-injection regex filter (pure Python, zero cost)
 # Each string is ONE injection intent. `re` joins them with "|" and compiles a
@@ -51,6 +59,7 @@ def _parse_banned_words(raw: str) -> list[str]:
 # ProfanityFree: tiny sklearn classifier (alt-profanity-check), ~2 ms per call.
 # `on_fail="exception"` means `guard.validate()` raises on a profane match.
 _profanity_guard = Guard().use(ProfanityFree(on_fail="exception"))
+_profanity_guard.configure(allow_metrics_collection=False)
 
 # BanList: pure fuzzy string matching (Levenshtein, max distance 1 default).
 # Catches leaked secrets / codenames even if slightly misspelled ("A T H E N A").
@@ -61,6 +70,7 @@ _banlist_guard = Guard().use(
         on_fail="exception",
     )
 )
+_banlist_guard.configure(allow_metrics_collection=False)
 
 
 # 3) Public entry points used by the graph nodes
