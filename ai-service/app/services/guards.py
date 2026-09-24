@@ -29,21 +29,25 @@ gr_settings.disable_tracing = True
 # 1) Prompt-injection regex filter (pure Python, zero cost)
 # Each string is ONE injection intent. `re` joins them with "|" and compiles a
 # single case-insensitive regex at import time — reused for every request.
+# A "signature" = ACTION verb + a bounded gap (absorbs filler like "me"/"please")
+# + a TARGET noun. Greedier than literal phrases, but this is an input gate: a
+# blocked legit question is a mild cost, a bypassed injection is a security hole.
+_INJECTION_ACTION = r"(?:show|reveal|give|get|tell|display|output|print|paste|share|expose|dump|list|echo|repeat|copy|write|recite|quote)"
+_INJECTION_TARGET = r"(?:your|the|developer|hidden|initial|actual|full)?\s*(?:system\s+)?(?:prompt|instructions)"
+
 _PROMPT_INJECTION_PATTERNS = [
-    r"ignore previous (instructions|all instructions)",  # "ignore previous instructions" (r"" — raw string)
-    r"ignore all (previous )?instructions",             # "ignore all instructions above"
-    r"ignore (the )?above",                             # "ignore the above text"
-    r"disregard (all |the )?rules",                     # "disregard all rules"
-    r"do not follow (the |any )?rules",                 # "do not follow any rules"
-    r"act as if you have no restrictions",              # classic jailbreak
-    r"act (with|under) no restrictions",                # same idea, other words
-    r"reveal (your|the) system prompt",                 # "reveal your system prompt"
-    r"show (your|the) system prompt",                   # "show your system prompt"
-    r"print (your|the) (system )?prompt",               # "print your prompt"
-    r"what are your (initial )?(instructions|prompt)",  # "what are your initial instructions?"
+    # "show/give/tell me your system prompt" — gap swallows "me", "please", etc.
+    rf"{_INJECTION_ACTION}[\s\S]{{0,40}}{_INJECTION_TARGET}",
+    # "forget/ignore/disregard your previous instructions" — synonym + filler tolerant
+    r"(?:forget|ignore|disregard|bypass|override|skip|drop|abandon|don'?t\s+(?:follow|listen to|care about))[\s\S]{0,40}(?:previous|prior|above|earlier|your|all|the)?\s*(?:instructions?|rules?|context|prompt)",
+    # classic jailbreak — "act as if you have no restrictions"
+    r"act (as if you have no restrictions|with no restrictions|under no restrictions)",
+    # direct interrogation — "what are your initial instructions?"
+    r"what are your (initial )?(instructions|prompt)",
 ]
 
-_INJECTION_RE = re.compile("|".join(_PROMPT_INJECTION_PATTERNS), re.IGNORECASE)
+# DOTALL so the [\s\S] gaps can span newlines in multi-line questions.
+_INJECTION_RE = re.compile("|".join(_PROMPT_INJECTION_PATTERNS), re.IGNORECASE | re.DOTALL)
 
 def has_prompt_injection(text: str) -> bool:
     """Return True if `text` looks like a prompt-injection attempt (regex only)."""
