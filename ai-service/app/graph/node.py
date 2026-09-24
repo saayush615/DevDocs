@@ -175,7 +175,12 @@ def output_guard(state: AgentState) -> dict:
 
     if not run_output_guard(answer):
         # Answer flagged: replace the whole thing with the generic fallback.
-        return {"answer": OUTPUT_BLOCKED_ANSWER}
+        return {
+            "blocked": True,
+            "route": "blocked",
+            "answer": OUTPUT_BLOCKED_ANSWER, 
+            "citations": []
+        }
 
     # Answer is safe: return an empty change-set (LangGraph merges it as no-op).
     return {}
