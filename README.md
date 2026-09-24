@@ -62,11 +62,12 @@ Qdrant (vector DB)
 - [x] Groq chat LLM (`langchain-groq`); Gemini retained for embeddings
 - [x] LangSmith tracing (per-node spans, route, grounding verdict, token usage)
 - [x] Safety guardrails — regex prompt-injection filter + Guardrails AI `input_guard`/`output_guard` (`ProfanityFree`, `BanList`)
-- [ ] Per-user daily quotas (queries, prompt tokens, completion tokens, embedding tokens)
-- [ ] Lifetime caps (documents, conversations) + per-file size cap
+- [ ] Per-user daily quotas (queries, uploads — simple request counts) + lifetime caps (documents, conversations) + per-file size cap
 - [ ] Burst rate limiting per user/IP on chat, upload, and auth
-- [ ] `UsageDaily` metering — FastAPI reports usage, Node enforces budgets
-- [ ] `429` surfaced in the UI before any token is spent
+- [ ] `UsageDaily` metering — Node records per-user daily counts and enforces budgets
+- [ ] `429` surfaced in the UI before any work begins
+
+Token-level usage metering (FastAPI-reported prompt/completion/embedding tokens + per-token daily budgets) is deferred — LangSmith covers cost observability.
 
 ### V1 — Knowledge
 - [ ] Org tenancy insurance (`organization_id` on all tables + Qdrant filter)
@@ -88,7 +89,7 @@ Qdrant (vector DB)
 - [ ] MCP server on Node (`search_docs`, `get_document`, `query`, `create_flag`)
 - [ ] External agents can query org knowledge with correct isolation
 
-**Explicitly deferred:** WhatsApp, semantic memory layer (mem0-style), signup abuse guard (email verification/IP throttling), BM25/cross-encoder retrieval upgrades.
+**Explicitly deferred:** WhatsApp, semantic memory layer (mem0-style), signup abuse guard (email verification/IP throttling), per-token usage metering (FastAPI-reported token budgets), BM25/cross-encoder retrieval upgrades.
 
 ---
 
