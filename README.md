@@ -61,7 +61,7 @@ Qdrant (vector DB)
 ### V0 — Guardrails (next)
 - [x] Groq chat LLM (`langchain-groq`); Gemini retained for embeddings
 - [x] LangSmith tracing (per-node spans, route, grounding verdict, token usage)
-- [ ] Safety guardrails — regex prompt-injection filter + Guardrails AI `input_guard`/`output_guard` (`ProfanityFree`, `BanList`)
+- [x] Safety guardrails — regex prompt-injection filter + Guardrails AI `input_guard`/`output_guard` (`ProfanityFree`, `BanList`)
 - [ ] Per-user daily quotas (queries, prompt tokens, completion tokens, embedding tokens)
 - [ ] Lifetime caps (documents, conversations) + per-file size cap
 - [ ] Burst rate limiting per user/IP on chat, upload, and auth
