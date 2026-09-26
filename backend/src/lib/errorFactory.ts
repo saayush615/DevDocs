@@ -10,6 +10,8 @@ export const Errors = {
 
   notFound: (msg = 'Not found') => new AppError(msg, 404),
 
+  tooManyRequests: (msg = 'Too many requests') => new AppError(msg, 429),
+
   aiService: (msg = 'AI service failed') => new AppError(msg, 502),
 
   internal: (msg = 'Something went wrong') => new AppError(msg, 500),
