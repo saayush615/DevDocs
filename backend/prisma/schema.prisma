@@ -24,6 +24,7 @@ model User {
   accounts      Account[]
   documents     Document[]
   conversations Conversation[]
+  usageDaily    UsageDaily[]
 }
 
 model Session {
@@ -111,4 +112,15 @@ model Message {
   createdAt      DateTime     @default(now())
 
   @@index([conversationId])
+}
+
+model UsageDaily {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime @db.Date // midnight-UTC day boundary
+  queryCount  Int      @default(0)
+  uploadCount Int      @default(0)
+
+  @@unique([userId, date]) // one row per user per day
 }
