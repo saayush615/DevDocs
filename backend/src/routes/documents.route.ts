@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
-import { Errors } from '../lib/errorFactory.js';
+import { Errors } from '../lib/ErrorFactory.js';
 import { uploadDocument, listDocuments } from '../controllers/documents.controller.js';
 
 export const documentsRouter = Router();

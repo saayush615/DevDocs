@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 import { prisma } from '../lib/prisma.js';
-import { Errors } from '../lib/errorFactory.js';
+import { Errors } from '../lib/ErrorFactory.js';
 import type { AuthRequest } from '../middleware/requireAuth.js';
 import { ingestUploadedFile } from '../services/upload.service.js';
 

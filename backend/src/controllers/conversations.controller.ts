@@ -1,7 +1,7 @@
 // Conversations controller: owned-CRUD. Every read checks userId (isolation).
 import type { Response } from 'express';
 import { prisma } from '../lib/prisma.js';
-import { Errors } from '../lib/errorFactory.js';
+import { Errors } from '../lib/ErrorFactory.js';
 import type { AuthRequest } from '../middleware/requireAuth.js';
 import { conversationBodySchema } from '../lib/validation.js';
 
@@ -33,7 +33,7 @@ export async function getConversation(req: AuthRequest, res: Response) {
   // findFirst({id, userId}) = ownership check in one query. Never findUnique by id alone.
   const { id } = req.params;
   if (typeof id !== 'string') throw Errors.notFound('Conversation not found');
-  
+
   const conv = await prisma.conversation.findFirst({
     where: { id, userId: req.userId },
     include: { messages: { orderBy: { createdAt: 'asc' } } },

@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma.js';
-import { Errors } from '../lib/errorFactory.js';
+import { Errors } from '../lib/ErrorFactory.js';
 import { ingestDocument } from './aiClient.service.js';
 
 export async function ingestUploadedFile(userId: string, originalname: string, buffer: Buffer) {

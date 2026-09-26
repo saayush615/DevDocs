@@ -1,7 +1,7 @@
 // Chat controller: save user msg -> history -> FastAPI stream -> pipe -> save assistant msg.
 import type { Response } from 'express';
 import { prisma } from '../lib/prisma.js';
-import { Errors } from '../lib/errorFactory.js';
+import { Errors } from '../lib/ErrorFactory.js';
 import type { AuthRequest } from '../middleware/requireAuth.js';
 import { fetchAiQueryStream } from '../services/aiClient.service.js';
 import { chatBodySchema } from '../lib/validation.js';
