@@ -5,6 +5,8 @@ import { Errors } from '../lib/ErrorFactory.js';
 import type { AuthRequest } from '../middleware/requireAuth.js';
 import { fetchAiQueryStream } from '../services/aiClient.service.js';
 import { chatBodySchema } from '../lib/validation.js';
+// V0 quota helpers — assert before SSE, record after a successful stream.
+import { assertDailyQuota, assertLifetimeCap, recordUsage } from '../lib/quota.js';
 
 const FALLBACK = "I don't have enough information in the available documents.";
 
@@ -14,6 +16,8 @@ export async function postChat(req: AuthRequest, res: Response) {
   if (!parsed.success) throw Errors.badRequest('Invalid body');
   const { question, conversationId } = parsed.data;
 
+  await assertDailyQuota(req.userId, 'query');
+
   let convId = conversationId;
   if (convId) {
     const owned = await prisma.conversation.findFirst({
@@ -21,6 +25,8 @@ export async function postChat(req: AuthRequest, res: Response) {
     });
     if (!owned) throw Errors.notFound('Conversation not found');
   } else {
+    await assertLifetimeCap(req.userId, 'conversation');
+
     const created = await prisma.conversation.create({
       data: { userId: req.userId, title: question.slice(0, 60) },
     });
@@ -89,6 +95,8 @@ export async function postChat(req: AuthRequest, res: Response) {
         routeTaken,
       },
     });
+
+    await recordUsage(req.userId, 'query').catch(() => {});
     res.end();
   } catch (err) {
     // 6. AI down mid-stream: answer via SSE + save, so chat never hangs.
