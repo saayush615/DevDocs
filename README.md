@@ -62,7 +62,7 @@ Qdrant (vector DB)
 - [x] Groq chat LLM (`langchain-groq`); Gemini retained for embeddings
 - [x] LangSmith tracing (per-node spans, route, grounding verdict, token usage)
 - [x] Safety guardrails — regex prompt-injection filter + Guardrails AI `input_guard`/`output_guard` (`ProfanityFree`, `BanList`)
-- [ ] Per-user daily quotas (queries, uploads — simple request counts) + lifetime caps (documents, conversations) + per-file size cap
+- [x] Per-user daily quotas (queries, uploads — simple request counts) + lifetime caps (documents, conversations) + per-file size cap
 - [ ] Burst rate limiting per user/IP on chat, upload, and auth
 - [ ] `UsageDaily` metering — Node records per-user daily counts and enforces budgets
 - [ ] `429` surfaced in the UI before any work begins
