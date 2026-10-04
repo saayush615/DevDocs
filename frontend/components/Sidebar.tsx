@@ -10,6 +10,7 @@ import {
 } from "@/lib/api";
 import type { Conversation } from "@/lib/types";
 import Button from "@/app/ui/Button";
+import QuotaMeter from "./QuotaMeter";
 
 export default function Sidebar() {
   const router = useRouter();
@@ -190,6 +191,12 @@ export default function Sidebar() {
           </svg>
           Documents
         </button>
+
+        {/* ── Quota meter: how much limit is left today ── */}
+        <div className="mt-3">
+          <QuotaMeter />
+        </div>
+
 
         {/* User info + sign out */}
         <div className="mt-2 flex items-center justify-between rounded-lg px-3 py-2">

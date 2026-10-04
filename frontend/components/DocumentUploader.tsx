@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { uploadDocument } from "@/lib/api";
 import Spinner from "@/app/ui/Spinner";
+import { uploadDocument, ApiError } from "@/lib/api";
 
 interface DocumentUploaderProps {
   onUpload: () => void;
@@ -14,6 +14,9 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Same limit as the backend, driven by env so the two can't drift apart.
+  const maxFileMB = Number(process.env.NEXT_PUBLIC_MAX_FILE_MB ?? 5);
 
   // ── Validate and upload a file ────────────────────────────────────
   async function handleFile(file: File) {
@@ -27,9 +30,9 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
       return;
     }
 
-    // Client-side validation: check file size (2MB max)
-    if (file.size > 2 * 1024 * 1024) {
-      setError("File must be smaller than 2MB");
+    // Client-side validation: check file size
+    if (file.size > maxFileMB * 1024 * 1024) {
+      setError(`File must be smaller than ${maxFileMB}MB`);
       return;
     }
 
@@ -39,7 +42,12 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
       setSuccess(`"${file.name}" uploaded and processing`);
       onUpload(); // Trigger list refresh in parent
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      // 429 = a quota/cap was hit (daily uploads or file size) → friendly copy.
+      if (err instanceof ApiError && (err.status === 429 || err.status === 413)) {
+        setError("Upload limit reached. Check your daily upload allowance and file size.");
+      } else {
+        setError(err instanceof Error ? err.message : "Upload failed");
+      }
     } finally {
       setUploading(false);
     }
