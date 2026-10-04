@@ -43,4 +43,4 @@ class QueryResponse(BaseModel):
     """What we always return — JSON endpoint + final SSE event share this shape."""
     answer: str
     citations: list[Citation]
-    route_taken: Literal["simple", "multi_hop"]
+    route_taken: Literal["simple", "multi_hop", "blocked"]

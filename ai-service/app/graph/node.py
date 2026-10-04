@@ -1,6 +1,14 @@
 from app.graph.state import AgentState
 from app.services.llm import get_llm
 from app.services.vector_store import search_chunks
+from app.services.guards import run_input_guard, run_output_guard
+
+# Static refusal returned when the INPUT GUARD blocks a question (prompt
+# injection / profanity). Deliberately short and generic — we never echo
+# the blocked text back to the user.
+BLOCKED_ANSWER = "I can't process this request."
+
+OUTPUT_BLOCKED_ANSWER = "I can't share that response — it may contain restricted or sensitive information."
 
 # Exact fallback — never guess, say this instead.
 FALLBACK_ANSWER = "I don't have enough information in the available documents."
@@ -132,6 +140,52 @@ def grounding_check(state: AgentState) -> dict:
     return {"grounded": grounded}
 
 
+#  GUADS
+def input_guard(state: AgentState) -> dict:
+    """(V0) Screen the user's question BEFORE any LLM call / token spend.
+
+    Reads only the RAW question text (never the history). On BLOCK we fill in
+    the final-ish response ourselves (route='blocked', answer=BLOCKED_ANSWER,
+    empty citations) so the conditional edge in graph.py can jump straight to
+    END — classify_q and simple_rag never run => ZERO tokens spent.
+    """
+    question = state["question"]
+
+    if not run_input_guard(question):
+        # Blocked: pre-fill the response; the graph short-circuits to END.
+        return {
+            "blocked": True,          # drives the conditional edge
+            "route": "blocked",       # contract value: simple | multi_hop | blocked
+            "answer": BLOCKED_ANSWER, # static refusal text
+            "citations": [],          # nothing retrieved, no sources
+            "grounded": False,        # nothing was grounded
+        }
+
+    # Allowed: just flag it and continue (classify_q -> simple_rag -> ...).
+    return {"blocked": False}
+
+def output_guard(state: AgentState) -> dict:
+    """(V0) Screen the final answer after grounding, before it is streamed.
+
+    Reads whatever `final_answer` produced and runs ProfanityFree + BanList on
+    it. On failure we swap in the standard "not enough information" fallback —
+    all-or-nothing, never a partially-flagged/redacted answer.
+    """
+    answer = state.get("answer", "")  # filled by final_answer
+
+    if not run_output_guard(answer):
+        # Answer flagged: replace the whole thing with the generic fallback.
+        return {
+            "blocked": True,
+            "route": "blocked",
+            "answer": OUTPUT_BLOCKED_ANSWER, 
+            "citations": []
+        }
+
+    # Answer is safe: return an empty change-set (LangGraph merges it as no-op).
+    return {}
+
+# Final Answers
 def final_answer(state: AgentState) -> dict:
     """Pick the user-facing answer: draft if grounded, else fallback."""
     if state.get("grounded") and state.get("draft_answer"):

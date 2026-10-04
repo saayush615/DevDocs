@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { getConversation, chatSSE } from "@/lib/api";
+import { getConversation, chatSSE, ApiError } from "@/lib/api";
 import type { Message, Citation } from "@/lib/types";
 import ChatMessages from "@/components/ChatMessages";
 import ChatInput from "@/components/ChatInput";
@@ -115,21 +115,21 @@ export default function ChatConversationPage() {
       },
 
       // Called if the stream or fetch fails
-      onError: (err) => {
+       onError: (err) => {
+        const isQuota = err instanceof ApiError && err.status === 429;
+        const message = isQuota
+          ? "Daily query limit reached. Try again tomorrow."
+          : "Sorry, something went wrong. Please try again.";
         // Show the fallback message the backend already sent, or our own error
         setMessages((prev) => {
           const updated = [...prev];
           const lastIdx = updated.length - 1;
           if (updated[lastIdx]?.role === "assistant" && !updated[lastIdx].content) {
-            updated[lastIdx] = {
-              ...updated[lastIdx],
-              content:
-                "Sorry, something went wrong. Please try again.",
-            };
+            updated[lastIdx] = { ...updated[lastIdx], content: message };
           }
           return updated;
         });
-        setError(err.message);
+        setError(message);
         setIsStreaming(false);
       },
     });

@@ -20,8 +20,7 @@ An internal knowledge-assistant web app. Engineers upload docs (`.md`, `.txt`, a
 | Embeddings | Gemini Embedding API |
 | LLM | Groq (`langchain-groq`, `LLM_MODEL` env var) |
 | Observability | LangSmith |
-| Guardrails | LLM Guard (input/output) + Guardrails AI (grounding) |
-| Evals | RAGAS (faithfulness, context precision/recall) |
+| Guardrails | Guardrails AI (`ProfanityFree`, `BanList`) + regex prompt-injection filter |
 
 ---
 
@@ -60,21 +59,21 @@ Qdrant (vector DB)
 ## Roadmap
 
 ### V0 — Guardrails (next)
-- [ ] Groq chat LLM (`langchain-groq`); Gemini retained for embeddings
-- [ ] LangSmith tracing (per-node spans, route, grounding verdict, token usage)
-- [ ] Safety guardrails — LLM Guard `input_guard` / `output_guard` + Guardrails AI grounding validator
-- [ ] RAGAS evals (faithfulness, context precision/recall) via LangSmith, over a golden Q&A set
-- [ ] Per-user daily quotas (queries, prompt tokens, completion tokens, embedding tokens)
-- [ ] Lifetime caps (documents, conversations) + per-file size cap
+- [x] Groq chat LLM (`langchain-groq`); Gemini retained for embeddings
+- [x] LangSmith tracing (per-node spans, route, grounding verdict, token usage)
+- [x] Safety guardrails — regex prompt-injection filter + Guardrails AI `input_guard`/`output_guard` (`ProfanityFree`, `BanList`)
+- [x] Per-user daily quotas (queries, uploads — simple request counts) + lifetime caps (documents, conversations) + per-file size cap
 - [ ] Burst rate limiting per user/IP on chat, upload, and auth
-- [ ] `UsageDaily` metering — FastAPI reports usage, Node enforces budgets
-- [ ] `429` surfaced in the UI before any token is spent
+- [x] `UsageDaily` metering — Node records per-user daily counts and enforces budgets
+- [x] `429` surfaced in the UI before any work begins
+
+Token-level usage metering (FastAPI-reported prompt/completion/embedding tokens + per-token daily budgets) is deferred — LangSmith covers cost observability.
 
 ### V1 — Knowledge
 - [ ] Org tenancy insurance (`organization_id` on all tables + Qdrant filter)
 - [ ] PDF, GitHub repo, and URL ingestion with provenance-rich citations (page/heading/URL)
 - [ ] Multi-hop RAG (sub-question decomposition, parallel retrieval, synthesis)
-- [ ] Per-answer feedback loop (eval harness moved to V0)
+- [ ] Per-answer feedback loop
 
 ### V2 — Everywhere
 - [ ] Slack adapter (Bolt) + Discord adapter (`discord.js`)
@@ -90,7 +89,7 @@ Qdrant (vector DB)
 - [ ] MCP server on Node (`search_docs`, `get_document`, `query`, `create_flag`)
 - [ ] External agents can query org knowledge with correct isolation
 
-**Explicitly deferred:** WhatsApp, semantic memory layer (mem0-style), signup abuse guard (email verification/IP throttling), BM25/cross-encoder retrieval upgrades.
+**Explicitly deferred:** WhatsApp, semantic memory layer (mem0-style), signup abuse guard (email verification/IP throttling), per-token usage metering (FastAPI-reported token budgets), BM25/cross-encoder retrieval upgrades.
 
 ---
 

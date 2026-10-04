@@ -5,9 +5,35 @@ import type {
   Message,
   Citation,
   SSEDoneEvent,
+  Quota
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+
+// -- Structured API error: carries the HTTP status so the UI can
+//    special-case quota hits (429) vs generic failures.
+export class ApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+// Backend errors are `{ error }`, success envelopes are `{ message }`.
+// Try to pull the human-readable string out of the raw body.
+function extractMessage(text: string): string | null {
+  try {
+    const json = JSON.parse(text);
+    if (typeof json?.error === "string") return json.error;
+    if (typeof json?.message === "string") return json.message;
+  } catch {
+    /* body wasn't JSON — fall through */
+  }
+  return null;
+}
 
 // -- Core Fetch Helper(adds the base URL, sends cookies, parses the JSON envelope)
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -22,7 +48,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const text = await res.text().catch(() => "Unknown error");
-    throw new Error(`API error ${res.status}: ${text}`);
+    throw new ApiError(res.status, extractMessage(text) ?? `API error ${res.status}`);
   }
 
   const json: ApiResponse<T> = await res.json();
@@ -53,7 +79,7 @@ export async function uploadDocument(file: File): Promise<Document> {
 
   if (!res.ok) {
     const text = await res.text().catch(() => "Upload failed");
-    throw new Error(`Upload failed (${res.status}): ${text}`);
+    throw new ApiError(res.status, extractMessage(text) ?? `Upload failed (${res.status})`);
   }
 
   const json: ApiResponse<Document> = await res.json();
@@ -88,6 +114,13 @@ export function getConversation(
 // DELETE /api/conversation/:id
 export function deleteConversation(id: string): Promise<null> {
   return apiFetch<null>(`/api/conversation/${id}`, { method: "DELETE" });
+}
+
+// -- Quota Endpoints
+
+// GET /api/quota — today's usage + limits for the sidebar meter
+export function getQuota(): Promise<Quota> {
+  return apiFetch<Quota>("/api/quota");
 }
 
 // -- Chat (SSE Streaming)
@@ -128,7 +161,8 @@ export async function chatSSE(
     });
 
     if (!res.ok) {
-      throw new Error(`Chat request failed (${res.status})`);
+      // A pre-SSE JSON 429 lands here (res is not a stream yet) — surface the status.
+      throw new ApiError(res.status, `Chat request failed (${res.status})`);
     }
 
     // Get a reader to consume the SSE stream incrementally
