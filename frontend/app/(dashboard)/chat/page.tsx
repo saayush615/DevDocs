@@ -2,21 +2,29 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createConversation } from "@/lib/api";
+import { createConversation, ApiError } from "@/lib/api";
 import Button from "@/app/ui/Button";
 import Spinner from "@/app/ui/Spinner";
 
 export default function ChatPage() {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleNewChat() {
     setCreating(true);
+    setError(null);
     try {
       const conv = await createConversation("New chat");
       router.push(`/chat/${conv.id}`);
-    } catch {
+    } catch (err) {
       setCreating(false);
+      // 429 = conversation lifetime cap reached → tell the user why.
+      setError(
+        err instanceof ApiError && err.status === 429
+          ? err.message
+          : "Could not start a new chat. Please try again."
+      );
     }
   }
 
@@ -74,6 +82,9 @@ export default function ChatPage() {
           )}
           {creating ? "Creating…" : "Start new chat"}
         </Button>
+        {error && (
+          <p className="mt-3 max-w-sm text-xs text-red-400">{error}</p>
+        )}
 
         {/* ── Tips ── */}
         <div className="mt-8 max-w-sm space-y-2 text-left">
