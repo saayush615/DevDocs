@@ -64,8 +64,8 @@ Qdrant (vector DB)
 - [x] Safety guardrails — regex prompt-injection filter + Guardrails AI `input_guard`/`output_guard` (`ProfanityFree`, `BanList`)
 - [x] Per-user daily quotas (queries, uploads — simple request counts) + lifetime caps (documents, conversations) + per-file size cap
 - [ ] Burst rate limiting per user/IP on chat, upload, and auth
-- [ ] `UsageDaily` metering — Node records per-user daily counts and enforces budgets
-- [ ] `429` surfaced in the UI before any work begins
+- [x] `UsageDaily` metering — Node records per-user daily counts and enforces budgets
+- [x] `429` surfaced in the UI before any work begins
 
 Token-level usage metering (FastAPI-reported prompt/completion/embedding tokens + per-token daily budgets) is deferred — LangSmith covers cost observability.
 
