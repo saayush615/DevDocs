@@ -7,6 +7,7 @@ import { notFound, errorHandler } from './middleware/errorHandler.js';
 import { documentsRouter } from './routes/documents.route.js';
 import { conversationsRouter } from './routes/conversations.route.js';
 import { chatRouter } from './routes/chat.route.js';
+import { quotaRouter } from './routes/quota.route.js';
 
 const app: Express = express();
 const port = 3001;
@@ -29,6 +30,7 @@ app.get('/api', (_req: Request, res: Response) => {
 app.use('/api/document', documentsRouter);
 app.use('/api/conversation', conversationsRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/quota', quotaRouter);
 
 app.use(notFound);
 app.use(errorHandler);
