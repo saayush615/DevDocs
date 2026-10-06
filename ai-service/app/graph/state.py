@@ -7,6 +7,7 @@ Think of the graph as an assembly line:
   final_answer reads `grounded` and decides the final `answer`.
 
 TypedDict (not BaseModel) is LangGraph convention — keys merge patch-style.
+total=False: every key is optional, since nodes fill the state in gradually.
 """
 from typing import TypedDict
 
