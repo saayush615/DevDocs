@@ -116,9 +116,9 @@ export default function ChatConversationPage() {
 
       // Called if the stream or fetch fails
        onError: (err) => {
-        const isQuota = err instanceof ApiError && err.status === 429;
-        const message = isQuota
-          ? "Daily query limit reached. Try again tomorrow."
+        const isRateLimited = err instanceof ApiError && err.status === 429;
+        const message = isRateLimited
+          ? err.message
           : "Sorry, something went wrong. Please try again.";
         // Show the fallback message the backend already sent, or our own error
         setMessages((prev) => {

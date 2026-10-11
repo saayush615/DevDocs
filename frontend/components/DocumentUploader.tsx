@@ -42,9 +42,11 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
       setSuccess(`"${file.name}" uploaded and processing`);
       onUpload(); // Trigger list refresh in parent
     } catch (err) {
-      // 429 = a quota/cap was hit (daily uploads or file size) → friendly copy.
       if (err instanceof ApiError && (err.status === 429 || err.status === 413)) {
-        setError("Upload limit reached. Check your daily upload allowance and file size.");
+        setError(
+          err.message ||
+            "Upload limit reached. Check your daily upload allowance and file size.",
+        );
       } else {
         setError(err instanceof Error ? err.message : "Upload failed");
       }

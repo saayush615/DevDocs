@@ -161,8 +161,12 @@ export async function chatSSE(
     });
 
     if (!res.ok) {
-      // A pre-SSE JSON 429 lands here (res is not a stream yet) — surface the status.
-      throw new ApiError(res.status, `Chat request failed (${res.status})`);
+      // A pre-SSE JSON 429 lands here (res is not a stream yet) — surface the body.
+      const text = await res.text().catch(() => "");
+      throw new ApiError(
+        res.status,
+        extractMessage(text) ?? `Chat request failed (${res.status})`,
+      );
     }
 
     // Get a reader to consume the SSE stream incrementally
