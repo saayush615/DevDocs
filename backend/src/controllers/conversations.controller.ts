@@ -1,7 +1,7 @@
 // Conversations controller: owned-CRUD. Every read checks userId (isolation).
 import type { Response } from 'express';
 import { prisma } from '../lib/prisma.js';
-import { Errors } from '../lib/ErrorFactory.js';
+import { Errors } from '../lib/errorFactory.js';
 import type { AuthRequest } from '../middleware/requireAuth.js';
 import { conversationBodySchema } from '../lib/validation.js';
 import { assertLifetimeCap } from '../lib/quota.js';

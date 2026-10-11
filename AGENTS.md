@@ -12,7 +12,7 @@ Three separate packages, **not** a pnpm workspace: `frontend/` (Next.js), `backe
 
 ## Current state (verified against code)
 
-- **MVP + most of V0 delivered.** Quotas/caps/guardrails are in: `backend/src/lib/quota.ts` (daily query/upload quotas, lifetime doc/conversation caps, `MAX_FILE_MB` — all read from `QUOTA_*` env vars with fallbacks), `controllers/quota.controller.ts` → `GET /api/quota`, `UsageDaily` table (migration `20260926090544_add_usage_daily`), `429` via `Errors.tooManyRequests` in `lib/ErrorFactory.ts`, surfaced in the UI (`components/QuotaMeter.tsx`, `lib/api.ts`). LangGraph has `input_guard` + `output_guard` nodes (`app/graph/graph.py`, `app/services/guards.py`).
+- **MVP + most of V0 delivered.** Quotas/caps/guardrails are in: `backend/src/lib/quota.ts` (daily query/upload quotas, lifetime doc/conversation caps, `MAX_FILE_MB` — all read from `QUOTA_*` env vars with fallbacks), `controllers/quota.controller.ts` → `GET /api/quota`, `UsageDaily` table (migration `20260926090544_add_usage_daily`), `429` via `Errors.tooManyRequests` in `lib/errorFactory.ts`, surfaced in the UI (`components/QuotaMeter.tsx`, `lib/api.ts`). LangGraph has `input_guard` + `output_guard` nodes (`app/graph/graph.py`, `app/services/guards.py`).
 - **Still open in V0:** burst rate limiting. `express-rate-limit` is installed in `backend/package.json` but **not imported anywhere in `backend/src`** — wiring it up is the remaining V0 item.
 - **Auth:** better-auth mounted at `/api/auth/*splat` (`backend/src/index.ts`); frontend uses the better-auth React client (`frontend/lib/auth-client.ts`) hitting backend directly.
 - **Upload:** `.md`/`.txt` via multer → `services/upload.service.ts` → FastAPI `/ingest`; status runs `pending → chunking → embedded | failed`.
