@@ -1,7 +1,7 @@
 // V0 quotas & caps — the single place that reads quota env vars and enforces limits.
 // Controllers just call assert*() before starting work and recordUsage() after success.
 import { prisma } from './prisma.js';
-import { Errors } from './ErrorFactory.js';
+import { Errors } from './errorFactory.js';
 
 export type DailyKind = 'query' | 'upload';
 export type LifetimeKind = 'document' | 'conversation';
