@@ -8,6 +8,7 @@ import { documentsRouter } from './routes/documents.route.js';
 import { conversationsRouter } from './routes/conversations.route.js';
 import { chatRouter } from './routes/chat.route.js';
 import { quotaRouter } from './routes/quota.route.js';
+import { authBurstLimiter } from './middleware/rateLimit.js';
 
 const app: Express = express();
 const port = 3001;
@@ -19,6 +20,7 @@ app.use(
   }),
 );
 
+app.use('/api/auth', authBurstLimiter);
 app.all('/api/auth/*splat', toNodeHandler(auth)); // better auth route
 
 app.use(express.json());
