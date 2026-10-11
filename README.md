@@ -63,16 +63,10 @@ Qdrant (vector DB)
 - [x] LangSmith tracing (per-node spans, route, grounding verdict, token usage)
 - [x] Safety guardrails — regex prompt-injection filter + Guardrails AI `input_guard`/`output_guard` (`ProfanityFree`, `BanList`)
 - [x] Per-user daily quotas (queries, uploads — simple request counts) + lifetime caps (documents, conversations) + per-file size cap
-- [ ] **Burst rate limiting per user/IP** on chat, upload, and auth (return `429` before any work)
+- [x] **Burst rate limiting per user/IP** on chat, upload, and auth (return `429` before any work)
 - [x] `UsageDaily` metering — Node records per-user daily counts and enforces budgets
 - [x] `429` surfaced in the UI before any work begins
-
-**V0 Acceptance:**
-- [ ] 31st query in a day → `429` before any work/token spend
-- [ ] Burst limit exceeded (chat/upload/auth) → `429` with clear message
-- [ ] Prompt-injection attempt blocked by `input_guard` with `route_taken: "blocked"` and zero tokens
-- [ ] Profane/banned output replaced by fallback via `output_guard`
-- [ ] File > `QUOTA_MAX_FILE_MB` rejected upfront (`413`/`429`)
+- [ ] Improve Frontend & Fix minor bugs
 
 
 ### V1 — LangGraph Hardening + Streaming + Minimal Tenancy
