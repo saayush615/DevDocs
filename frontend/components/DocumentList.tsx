@@ -84,9 +84,7 @@ export default function DocumentList() {
           />
         </svg>
         <p className="text-sm text-zinc-400">No documents yet</p>
-        <p className="mt-1 text-xs text-zinc-600">
-          Upload a .md or .txt file to get started
-        </p>
+        <p className="mt-1 text-xs text-zinc-600">Upload a .md or .txt file to get started</p>
       </div>
     );
   }
@@ -106,14 +104,10 @@ export default function DocumentList() {
           >
             {/* Left side: title + metadata */}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-zinc-100">
-                {doc.title}
-              </p>
+              <p className="truncate text-sm font-medium text-zinc-100">{doc.title}</p>
               <p className="mt-0.5 text-xs text-zinc-500">
-                {doc.chunkCount > 0
-                  ? `${doc.chunkCount} chunks`
-                  : "Processing…"}{" "}
-                · {new Date(doc.createdAt).toLocaleDateString()}
+                {doc.chunkCount > 0 ? `${doc.chunkCount} chunks` : "Processing…"} ·{" "}
+                {new Date(doc.createdAt).toLocaleDateString()}
               </p>
             </div>
 

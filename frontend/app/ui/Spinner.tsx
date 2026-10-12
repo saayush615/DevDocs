@@ -7,9 +7,9 @@ interface SpinnerProps {
 export default function Spinner({ size = "sm", className = "" }: SpinnerProps) {
   // Map size prop to Tailwind classes
   const sizeClasses = {
-    sm: "h-4 w-4",   // Inline use — buttons, badges
-    md: "h-5 w-5",   // Default — card loading states
-    lg: "h-8 w-8",   // Page-level loading
+    sm: "h-4 w-4", // Inline use — buttons, badges
+    md: "h-5 w-5", // Default — card loading states
+    lg: "h-8 w-8", // Page-level loading
   };
 
   return (

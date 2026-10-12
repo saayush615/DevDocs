@@ -35,9 +35,7 @@ const TEXT = {
 function Stat({ label, value }: { label: string; value: QuotaUsage }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[10px] uppercase tracking-wide text-zinc-600">
-        {label}
-      </span>
+      <span className="text-[10px] tracking-wide text-zinc-600 uppercase">{label}</span>
       <span className="text-sm text-zinc-300">
         {value.used}
         <span className="text-zinc-600">/{value.limit}</span>
@@ -90,7 +88,7 @@ export default function QuotaMeter() {
     <div className="mb-2 space-y-3 rounded-xl border border-white/10 bg-zinc-900/50 p-3">
       {/* Header row: label + manual refresh */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+        <span className="text-[10px] font-medium tracking-wider text-zinc-500 uppercase">
           Today's usage
         </span>
         <button
@@ -114,9 +112,7 @@ export default function QuotaMeter() {
       <div className="space-y-1">
         <div className="flex items-baseline justify-between">
           <span className="text-xs text-zinc-400">Queries</span>
-          <span className={`text-xs font-medium ${TEXT[color]}`}>
-            {left} left
-          </span>
+          <span className={`text-xs font-medium ${TEXT[color]}`}>{left} left</span>
         </div>
         {/* Progress bar — fill width = used %, color = remaining health */}
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">

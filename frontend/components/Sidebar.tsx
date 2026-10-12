@@ -2,12 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useSession, signOut } from "@/lib/auth-client";
-import {
-  listConversations,
-  createConversation,
-  deleteConversation,
-} from "@/lib/api";
+import { useSession, signOut } from "@/lib/auth";
+import { listConversations, createConversation, deleteConversation } from "@/lib/api";
 import type { Conversation } from "@/lib/types";
 import Button from "@/app/ui/Button";
 import QuotaMeter from "./QuotaMeter";
@@ -89,18 +85,8 @@ export default function Sidebar() {
           disabled={creating}
         >
           {/* Plus icon (inline SVG — no icon library needed) */}
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           {creating ? "Creating…" : "New chat"}
         </Button>
@@ -112,17 +98,12 @@ export default function Sidebar() {
           // Loading state — show 3 skeleton lines
           <div className="space-y-2 p-2">
             {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-9 animate-pulse rounded-lg bg-white/5"
-              />
+              <div key={i} className="h-9 animate-pulse rounded-lg bg-white/5" />
             ))}
           </div>
         ) : conversations.length === 0 ? (
           // Empty state — no conversations yet
-          <p className="p-4 text-center text-sm text-zinc-600">
-            No conversations yet
-          </p>
+          <p className="p-4 text-center text-sm text-zinc-600">No conversations yet</p>
         ) : (
           // Conversation list — each item links to /chat/[id]
           conversations.map((conv) => {
@@ -131,12 +112,11 @@ export default function Sidebar() {
               <div
                 key={conv.id}
                 onClick={() => router.push(`/chat/${conv.id}`)}
-                className={`group flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors
-                  ${isActive
+                className={`group flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
+                  isActive
                     ? "bg-white/10 text-zinc-100"
                     : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
-                  }
-                `}
+                } `}
               >
                 {/* Conversation title — truncate if too long */}
                 <span className="truncate">{conv.title}</span>
@@ -144,9 +124,7 @@ export default function Sidebar() {
                 {/* Delete button — visible on hover (always visible for active) */}
                 <button
                   onClick={(e) => handleDelete(e, conv.id)}
-                  className={`ml-2 shrink-0 rounded p-1 text-zinc-600 transition-colors hover:text-red-400
-                    ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
-                  `}
+                  className={`ml-2 shrink-0 rounded p-1 text-zinc-600 transition-colors hover:text-red-400 ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"} `}
                   title="Delete conversation"
                 >
                   <svg
@@ -176,12 +154,7 @@ export default function Sidebar() {
           onClick={() => router.push("/documents")}
           className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-200"
         >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -197,7 +170,6 @@ export default function Sidebar() {
           <QuotaMeter />
         </div>
 
-
         {/* User info + sign out */}
         <div className="mt-2 flex items-center justify-between rounded-lg px-3 py-2">
           <span className="truncate text-xs text-zinc-500">
@@ -208,12 +180,7 @@ export default function Sidebar() {
             className="shrink-0 rounded p-1 text-zinc-600 transition-colors hover:text-red-400"
             title="Sign out"
           >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"

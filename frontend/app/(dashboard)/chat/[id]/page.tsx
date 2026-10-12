@@ -105,8 +105,8 @@ export default function ChatConversationPage() {
           if (updated[lastIdx]?.role === "assistant") {
             updated[lastIdx] = {
               ...updated[lastIdx],
-              citations,     // Array of source citations from the AI
-              routeTaken,    // "simple" or "multi_hop"
+              citations, // Array of source citations from the AI
+              routeTaken, // "simple" or "multi_hop"
             };
           }
           return updated;
@@ -115,7 +115,7 @@ export default function ChatConversationPage() {
       },
 
       // Called if the stream or fetch fails
-       onError: (err) => {
+      onError: (err) => {
         const isRateLimited = err instanceof ApiError && err.status === 429;
         const message = isRateLimited
           ? err.message
@@ -149,9 +149,7 @@ export default function ChatConversationPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
         <p className="text-sm text-red-400">{error}</p>
-        <p className="text-xs text-zinc-600">
-          This conversation may have been deleted.
-        </p>
+        <p className="text-xs text-zinc-600">This conversation may have been deleted.</p>
       </div>
     );
   }

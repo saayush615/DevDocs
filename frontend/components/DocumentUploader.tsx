@@ -44,8 +44,7 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
     } catch (err) {
       if (err instanceof ApiError && (err.status === 429 || err.status === 413)) {
         setError(
-          err.message ||
-            "Upload limit reached. Check your daily upload allowance and file size.",
+          err.message || "Upload limit reached. Check your daily upload allowance and file size."
         );
       } else {
         setError(err instanceof Error ? err.message : "Upload failed");
@@ -93,13 +92,11 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors
-          ${isDragging
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
+          isDragging
             ? "border-emerald-400 bg-emerald-400/5"
             : "border-white/10 bg-zinc-900/50 hover:border-white/20 hover:bg-zinc-900"
-          }
-          ${uploading ? "pointer-events-none opacity-50" : ""}
-        `}
+        } ${uploading ? "pointer-events-none opacity-50" : ""} `}
       >
         {uploading ? (
           <Spinner size="lg" />
@@ -120,12 +117,9 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
               />
             </svg>
             <p className="text-sm text-zinc-400">
-              Drop a file here or{" "}
-              <span className="text-emerald-400">browse</span>
+              Drop a file here or <span className="text-emerald-400">browse</span>
             </p>
-            <p className="mt-1 text-xs text-zinc-600">
-              .md or .txt, up to 2MB
-            </p>
+            <p className="mt-1 text-xs text-zinc-600">.md or .txt, up to 2MB</p>
           </>
         )}
       </div>
@@ -140,15 +134,9 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
       />
 
       {/* ── Status Messages ── */}
-      {error && (
-        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">
-          {error}
-        </p>
-      )}
+      {error && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>}
       {success && (
-        <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
-          {success}
-        </p>
+        <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">{success}</p>
       )}
     </div>
   );

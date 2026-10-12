@@ -24,9 +24,7 @@ export default function ChatMessages({ messages }: ChatMessagesProps) {
   if (messages.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-zinc-600">
-          Send a message to start the conversation
-        </p>
+        <p className="text-sm text-zinc-600">Send a message to start the conversation</p>
       </div>
     );
   }
@@ -51,14 +49,8 @@ export default function ChatMessages({ messages }: ChatMessagesProps) {
                 {/* Badge showing which route the agent took */}
                 {msg.routeTaken && (
                   <div>
-                    <Badge
-                      variant={
-                        msg.routeTaken === "multi_hop" ? "violet" : "zinc"
-                      }
-                    >
-                      {msg.routeTaken === "multi_hop"
-                        ? "Multi-hop"
-                        : "Simple retrieval"}
+                    <Badge variant={msg.routeTaken === "multi_hop" ? "violet" : "zinc"}>
+                      {msg.routeTaken === "multi_hop" ? "Multi-hop" : "Simple retrieval"}
                     </Badge>
                   </div>
                 )}
@@ -121,12 +113,9 @@ export default function ChatMessages({ messages }: ChatMessagesProps) {
                           className="rounded-lg border border-white/5 bg-zinc-900/50 p-3"
                         >
                           <p className="text-xs text-zinc-500">
-                            Doc: {cite.document_id.slice(0, 8)}… · Chunk{" "}
-                            {cite.chunk_index}
+                            Doc: {cite.document_id.slice(0, 8)}… · Chunk {cite.chunk_index}
                           </p>
-                          <p className="mt-1 text-xs text-zinc-400">
-                            {cite.snippet}
-                          </p>
+                          <p className="mt-1 text-xs text-zinc-400">{cite.snippet}</p>
                         </div>
                       ))}
                     </div>

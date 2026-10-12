@@ -46,9 +46,7 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
           {/* ── Textarea ── */}
           <textarea
             ref={textareaRef}
-            placeholder={
-              disabled ? "Waiting for response…" : "Ask a question…"
-            }
+            placeholder={disabled ? "Waiting for response…" : "Ask a question…"}
             disabled={disabled}
             onKeyDown={handleKeyDown}
             rows={1}
@@ -77,12 +75,7 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-zinc-950 transition-colors hover:bg-emerald-400 disabled:opacity-50"
               title="Send message (Enter)"
             >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

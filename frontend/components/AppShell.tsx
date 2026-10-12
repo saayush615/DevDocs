@@ -23,11 +23,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* On desktop (md+): always visible, fixed position within the flex layout.
           On mobile: absolute overlay, slides in from left when sidebarOpen is true. */}
       <div
-        className={`
-          fixed inset-y-0 left-0 z-40 transition-transform duration-200
-          md:static md:translate-x-0
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
+        className={`fixed inset-y-0 left-0 z-40 transition-transform duration-200 md:static md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} `}
       >
         <Sidebar />
       </div>
@@ -42,12 +38,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             className="rounded p-1 text-zinc-400 hover:text-zinc-100 md:hidden"
             aria-label="Open sidebar"
           >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
