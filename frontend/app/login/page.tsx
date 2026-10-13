@@ -4,8 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn } from "@/lib/auth-client";
-import { loginSchema, type LoginFormValues } from "@/lib/auth-schema";
+import { signIn, loginSchema, type LoginFormValues } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -49,32 +48,24 @@ export default function LoginPage() {
         <h1 className="mb-6 text-xl font-semibold text-zinc-100">Log in</h1>
 
         {/* ── Email Field ── */}
-        <label className="mb-1 block text-sm font-medium text-zinc-300">
-          Email
-        </label>
+        <label className="mb-1 block text-sm font-medium text-zinc-300">Email</label>
         <input
           type="email"
           {...register("email")}
           placeholder="you@example.com"
           className="mb-1 w-full rounded-lg border border-white/10 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50"
         />
-        {errors.email && (
-          <p className="mb-3 text-sm text-red-400">{errors.email.message}</p>
-        )}
+        {errors.email && <p className="mb-3 text-sm text-red-400">{errors.email.message}</p>}
 
         {/* ── Password Field ── */}
-        <label className="mb-1 block text-sm font-medium text-zinc-300">
-          Password
-        </label>
+        <label className="mb-1 block text-sm font-medium text-zinc-300">Password</label>
         <input
           type="password"
           {...register("password")}
           placeholder="••••••••"
           className="mb-1 w-full rounded-lg border border-white/10 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50"
         />
-        {errors.password && (
-          <p className="mb-3 text-sm text-red-400">{errors.password.message}</p>
-        )}
+        {errors.password && <p className="mb-3 text-sm text-red-400">{errors.password.message}</p>}
 
         {/* ── Server Error ── */}
         {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
