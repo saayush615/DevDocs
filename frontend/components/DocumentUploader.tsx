@@ -3,12 +3,14 @@
 import { useState, useRef } from "react";
 import Spinner from "@/app/ui/Spinner";
 import { uploadDocument, ApiError } from "@/lib/api";
+import { useQuota } from "./QuotaProvider";
 
 interface DocumentUploaderProps {
   onUpload: () => void;
 }
 
 export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
+  const { refresh: refreshQuota } = useQuota();
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,8 +43,10 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
       await uploadDocument(file);
       setSuccess(`"${file.name}" uploaded and processing`);
       onUpload(); // Trigger list refresh in parent
+      void refreshQuota();
     } catch (err) {
       if (err instanceof ApiError && (err.status === 429 || err.status === 413)) {
+        void refreshQuota();
         setError(
           err.message || "Upload limit reached. Check your daily upload allowance and file size."
         );

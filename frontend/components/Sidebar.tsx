@@ -7,11 +7,13 @@ import { listConversations, createConversation, deleteConversation } from "@/lib
 import type { Conversation } from "@/lib/types";
 import Button from "@/app/ui/Button";
 import QuotaMeter from "./QuotaMeter";
+import { useQuota } from "./QuotaProvider";
 
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { refresh: refreshQuota } = useQuota();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,7 @@ export default function Sidebar() {
     try {
       const conv = await createConversation("New chat");
       await refresh();
+      void refreshQuota();
       router.push(`/chat/${conv.id}`);
     } catch {
       // If creation fails, the user can try again

@@ -1,14 +1,12 @@
 "use client";
 
 // QuotaMeter: shows the authenticated user's remaining limits in the sidebar.
-// Fetches GET /api/quota on mount and on every navigation (uses usePathname).
-// If the fetch fails it renders nothing, so the sidebar stays clean — the
-// meter never breaks the page.
+// Reads shared quota from QuotaProvider (fetched on mount, refreshed after
+// chat/upload/new-chat). If the fetch fails it renders nothing, so the
+// sidebar stays clean — the meter never breaks the page.
 
-import { useState, useEffect, useCallback } from "react";
-import { usePathname } from "next/navigation";
-import { getQuota } from "@/lib/api";
-import type { Quota, QuotaUsage } from "@/lib/types";
+import type { QuotaUsage } from "@/lib/types";
+import { useQuota } from "./QuotaProvider";
 
 // Color the meter by how much is LEFT, not by how much was used:
 //   >30% left = emerald (healthy) · >10% left = amber · ≤10% left = red
@@ -45,27 +43,7 @@ function Stat({ label, value }: { label: string; value: QuotaUsage }) {
 }
 
 export default function QuotaMeter() {
-  const pathname = usePathname();
-  const [quota, setQuota] = useState<Quota | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      const data = await getQuota();
-      setQuota(data);
-      setFailed(false);
-    } catch {
-      // Endpoint unavailable (quota feature not deployed yet) → hide quietly.
-      setFailed(true);
-    }
-  }, []);
-
-  // Refetch on mount AND on every route change, so the bar is fresh after
-  // a chat reply, an upload, or a new chat. `quota` persists across these,
-  // so the shimmer only shows on first load (no flicker on navigation).
-  useEffect(() => {
-    load();
-  }, [load, pathname]);
+  const { quota, failed, refresh } = useQuota();
 
   if (failed) return null; // no backend → render nothing
 
@@ -92,7 +70,7 @@ export default function QuotaMeter() {
           Today's usage
         </span>
         <button
-          onClick={load}
+          onClick={() => void refresh()}
           className="rounded p-0.5 text-zinc-600 transition-colors hover:text-zinc-300"
           title="Refresh"
         >

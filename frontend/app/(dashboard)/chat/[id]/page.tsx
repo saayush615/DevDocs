@@ -7,11 +7,13 @@ import type { Message, Citation } from "@/lib/types";
 import ChatMessages from "@/components/ChatMessages";
 import ChatInput from "@/components/ChatInput";
 import Spinner from "@/app/ui/Spinner";
+import { useQuota } from "@/components/QuotaProvider";
 
 export default function ChatConversationPage() {
   // Read the conversation ID from the URL: /chat/[id]
   const params = useParams<{ id: string }>();
   const conversationId = params.id;
+  const { refresh: refreshQuota } = useQuota();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -112,11 +114,13 @@ export default function ChatConversationPage() {
           return updated;
         });
         setIsStreaming(false);
+        void refreshQuota();
       },
 
       // Called if the stream or fetch fails
       onError: (err) => {
         const isRateLimited = err instanceof ApiError && err.status === 429;
+        if (isRateLimited) void refreshQuota();
         const message = isRateLimited
           ? err.message
           : "Sorry, something went wrong. Please try again.";
