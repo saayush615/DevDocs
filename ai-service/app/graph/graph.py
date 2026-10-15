@@ -1,15 +1,20 @@
 """
-  V0 graph:
+  V1 graph:
 
-  START -> input_guard -allowed-> classify_q -> simple_rag ->
-               grounding_check -> final_answer -> output_guard -> END
-          ^
-          '--blocked-> END   (canned refusal, ZERO tokens spent)
+  START -> input_guard -allowed-> classify_q -simple|multi_hop-> simple_rag ->
+               grounding_check -grounded-> final_answer -> output_guard -> END
+          |                  |                          |
+          |                  '-off_topic----------------+
+          '-invalid------------------------------------ fallback_response -+
+                                                       ^                   |
+               grounding_check -ungrounded, retry<1 -> simple_rag          |
+               grounding_check -ungrounded, retry>=1 ----------------------+
 """
 from langgraph.graph import END, START, StateGraph
 
 from app.graph.node import (
     classify_q,
+    fallback_response,
     final_answer,
     grounding_check,
     input_guard,
@@ -20,13 +25,23 @@ from app.graph.node import (
 from app.graph.state import AgentState
 
 
-def route_blocked(state: AgentState) -> str:
-    """Conditional-edge mapper for input_guard.
+def route_after_input(state: AgentState) -> str:
+    """input_guard: invalid -> fallback_response, else classify_q."""
+    return "invalid" if state.get("blocked") else "allowed"
 
-    LangGraph calls this with the current state dict and uses the returned
-    string to pick a target edge from the mapping dict in build_graph().
-    """
-    return "blocked" if state.get("blocked") else "allowed"
+
+def route_after_classify(state: AgentState) -> str:
+    """classify_q: off_topic -> fallback_response, else simple_rag."""
+    return "off_topic" if state.get("route") == "off_topic" else "rag"
+
+
+def route_after_grounding(state: AgentState) -> str:
+    """grounding_check: grounded -> final; else retry once, then fallback."""
+    if state.get("grounded"):
+        return "final"
+    if state.get("retry_count", 0) < 1:
+        return "retry"
+    return "fallback"
 
 
 def build_graph():
@@ -37,33 +52,47 @@ def build_graph():
     """
     g = StateGraph(AgentState)
 
-    # Register ALL nodes (4 original + 2 new V0 guard nodes)
     g.add_node("input_guard", input_guard)
     g.add_node("classify_q", classify_q)
     g.add_node("simple_rag", simple_rag)
     g.add_node("grounding_check", grounding_check)
+    g.add_node("fallback_response", fallback_response)
     g.add_node("final_answer", final_answer)
     g.add_node("output_guard", output_guard)
 
-    # START always goes to the input guard first.
     g.add_edge(START, "input_guard")
 
-    # input_guard branches on state["blocked"]:
-    #   allowed -> classify_q (normal pipeline continues)
-    #   blocked -> END        (answer already pre-filled, zero tokens spent)
     g.add_conditional_edges(
         "input_guard",
-        route_blocked,  # the mapper above -> returns "allowed" or "blocked"
+        route_after_input,
         {
             "allowed": "classify_q",
-            "blocked": END,
+            "invalid": "fallback_response",
         },
     )
 
-    # Linear pipeline after the input guard (unchanged MVP chain + output guard)
-    g.add_edge("classify_q", "simple_rag")
+    g.add_conditional_edges(
+        "classify_q",
+        route_after_classify,
+        {
+            "rag": "simple_rag",
+            "off_topic": "fallback_response",
+        },
+    )
+
     g.add_edge("simple_rag", "grounding_check")
-    g.add_edge("grounding_check", "final_answer")
+
+    g.add_conditional_edges(
+        "grounding_check",
+        route_after_grounding,
+        {
+            "final": "final_answer",
+            "retry": "simple_rag",
+            "fallback": "fallback_response",
+        },
+    )
+
+    g.add_edge("fallback_response", "final_answer")
     g.add_edge("final_answer", "output_guard")
     g.add_edge("output_guard", END)
 
