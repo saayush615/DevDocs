@@ -21,12 +21,24 @@ router = APIRouter(prefix="/query", tags=["query"])
 _graph = build_graph()
 
 
+def _initial_state(request: QueryRequest) -> dict:
+    return {
+        "question": request.question,
+        "user_id": request.user_id,  # isolation key, flows into Qdrant filter
+        "history": [m.model_dump() for m in request.history],
+        "top_k": request.top_k,
+        "retry_count": 0,
+    }
+
+
 def _to_response(result: dict) -> QueryResponse:
     """Convert raw graph state dict into validated API response."""
+    raw = result.get("route", "simple")
+    route_taken = "blocked" if raw == "invalid_input" else raw
     return QueryResponse(
         answer=result.get("answer", ""),
         citations=[Citation(**c) for c in result.get("citations", [])],
-        route_taken=result.get("route", "simple"),  # "simple" | "multi_hop"
+        route_taken=route_taken,
     )
 
 
@@ -45,12 +57,7 @@ async def query_json(request: QueryRequest, _: str = Depends(verify_token)) -> Q
         "metadata": {"conversation_id": request.conversation_id},  # skip user_id (PII)
     }
     
-    result = await _graph.ainvoke({
-        "question": request.question,
-        "user_id": request.user_id,  # <-- isolation key, flows into Qdrant filter
-        "history": [m.model_dump() for m in request.history],
-        "top_k": request.top_k,
-    }, config=trace_config)
+    result = await _graph.ainvoke(_initial_state(request), config=trace_config)
     return _to_response(result)
 
 
@@ -65,12 +72,7 @@ async def query_stream(request: QueryRequest, _: str = Depends(verify_token)):
         "tags": ["query", "stream"],
         "metadata": {"conversation_id": request.conversation_id},  # skip user_id (PII)
     }
-    result = await _graph.ainvoke({
-        "question": request.question,
-        "user_id": request.user_id,
-        "history": [m.model_dump() for m in request.history],
-        "top_k": request.top_k,
-    }, config=trace_config)
+    result = await _graph.ainvoke(_initial_state(request), config=trace_config)
     response = _to_response(result)
 
     async def event_generator():
