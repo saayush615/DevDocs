@@ -16,6 +16,13 @@ export function getConversation(id: string): Promise<Conversation & { messages: 
   return apiFetch<Conversation & { messages: Message[] }>(`/api/conversation/${id}`);
 }
 
+export function updateConversation(id: string, title: string): Promise<Conversation> {
+  return apiFetch<Conversation>(`/api/conversation/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
+}
+
 export function deleteConversation(id: string): Promise<null> {
   return apiFetch<null>(`/api/conversation/${id}`, { method: "DELETE" });
 }

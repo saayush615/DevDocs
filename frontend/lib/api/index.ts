@@ -4,6 +4,7 @@ export {
   createConversation,
   listConversations,
   getConversation,
+  updateConversation,
   deleteConversation,
 } from "./conversations";
 export { getQuota } from "./quota";

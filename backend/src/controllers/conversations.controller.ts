@@ -3,7 +3,7 @@ import type { Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { Errors } from '../lib/errorFactory.js';
 import type { AuthRequest } from '../middleware/requireAuth.js';
-import { conversationBodySchema } from '../lib/validation.js';
+import { conversationBodySchema, conversationTitleSchema } from '../lib/validation.js';
 import { assertLifetimeCap } from '../lib/quota.js';
 
 export async function createConversation(req: AuthRequest, res: Response) {
@@ -48,6 +48,30 @@ export async function getConversation(req: AuthRequest, res: Response) {
     success: true,
     message: 'Conversation fetched',
     data: conv,
+  });
+}
+
+export async function updateConversation(req: AuthRequest, res: Response) {
+  const { id } = req.params;
+  if (typeof id !== 'string') throw Errors.notFound('Conversation not found');
+
+  const parsed = conversationTitleSchema.safeParse(req.body);
+  if (!parsed.success) throw Errors.badRequest('Title must be between 1 and 100 characters');
+
+  const conv = await prisma.conversation.findFirst({
+    where: { id, userId: req.userId },
+  });
+  if (!conv) throw Errors.notFound('Conversation not found');
+
+  const updated = await prisma.conversation.update({
+    where: { id: conv.id },
+    data: { title: parsed.data.title },
+    select: { id: true, title: true, createdAt: true },
+  });
+  res.status(200).json({
+    success: true,
+    message: 'Conversation updated',
+    data: updated,
   });
 }
 
