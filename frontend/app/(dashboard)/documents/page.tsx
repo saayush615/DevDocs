@@ -14,8 +14,7 @@ export default function DocumentsPage() {
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-zinc-100">Documents</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Upload markdown or text files. The AI will chunk and embed them for
-          retrieval in chat.
+          Upload markdown or text files. The AI will chunk and embed them for retrieval in chat.
         </p>
       </div>
 

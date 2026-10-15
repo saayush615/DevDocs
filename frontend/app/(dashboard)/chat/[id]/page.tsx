@@ -7,11 +7,13 @@ import type { Message, Citation } from "@/lib/types";
 import ChatMessages from "@/components/ChatMessages";
 import ChatInput from "@/components/ChatInput";
 import Spinner from "@/app/ui/Spinner";
+import { useQuota } from "@/components/QuotaProvider";
 
 export default function ChatConversationPage() {
   // Read the conversation ID from the URL: /chat/[id]
   const params = useParams<{ id: string }>();
   const conversationId = params.id;
+  const { refresh: refreshQuota } = useQuota();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,18 +107,20 @@ export default function ChatConversationPage() {
           if (updated[lastIdx]?.role === "assistant") {
             updated[lastIdx] = {
               ...updated[lastIdx],
-              citations,     // Array of source citations from the AI
-              routeTaken,    // "simple" or "multi_hop"
+              citations, // Array of source citations from the AI
+              routeTaken, // "simple" or "multi_hop"
             };
           }
           return updated;
         });
         setIsStreaming(false);
+        void refreshQuota();
       },
 
       // Called if the stream or fetch fails
-       onError: (err) => {
+      onError: (err) => {
         const isRateLimited = err instanceof ApiError && err.status === 429;
+        if (isRateLimited) void refreshQuota();
         const message = isRateLimited
           ? err.message
           : "Sorry, something went wrong. Please try again.";
@@ -149,9 +153,7 @@ export default function ChatConversationPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
         <p className="text-sm text-red-400">{error}</p>
-        <p className="text-xs text-zinc-600">
-          This conversation may have been deleted.
-        </p>
+        <p className="text-xs text-zinc-600">This conversation may have been deleted.</p>
       </div>
     );
   }

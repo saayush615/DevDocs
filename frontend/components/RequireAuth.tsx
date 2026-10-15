@@ -2,13 +2,9 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth";
 
-export default function RequireAuth({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RequireAuth({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   // useSession() calls GET /api/auth/get-session behind the scenes
   const { data: session, isPending } = useSession();

@@ -5,6 +5,7 @@ import {
   createConversation,
   listConversations,
   getConversation,
+  updateConversation,
   deleteConversation,
 } from '../controllers/conversations.controller.js';
 
@@ -14,4 +15,5 @@ conversationsRouter.use(requireAuth);
 conversationsRouter.post('/', asyncHandler(createConversation));
 conversationsRouter.get('/', asyncHandler(listConversations));
 conversationsRouter.get('/:id', asyncHandler(getConversation));
+conversationsRouter.patch('/:id', asyncHandler(updateConversation));
 conversationsRouter.delete('/:id', asyncHandler(deleteConversation));

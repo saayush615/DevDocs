@@ -26,14 +26,11 @@ export default function Button({
   // Variant-specific classes
   const variants = {
     // Emerald button for primary actions (send, submit, create)
-    primary:
-      "bg-emerald-500 text-zinc-950 hover:bg-emerald-400",
+    primary: "bg-emerald-500 text-zinc-950 hover:bg-emerald-400",
     // Transparent button for sidebar items, navigation
-    ghost:
-      "text-zinc-400 hover:bg-white/10 hover:text-zinc-100",
+    ghost: "text-zinc-400 hover:bg-white/10 hover:text-zinc-100",
     // Red button for destructive actions (delete, sign out)
-    danger:
-      "text-red-400 hover:bg-red-500/10",
+    danger: "text-red-400 hover:bg-red-500/10",
   };
 
   return (

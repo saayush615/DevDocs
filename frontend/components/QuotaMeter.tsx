@@ -1,14 +1,12 @@
 "use client";
 
 // QuotaMeter: shows the authenticated user's remaining limits in the sidebar.
-// Fetches GET /api/quota on mount and on every navigation (uses usePathname).
-// If the fetch fails it renders nothing, so the sidebar stays clean — the
-// meter never breaks the page.
+// Reads shared quota from QuotaProvider (fetched on mount, refreshed after
+// chat/upload/new-chat). If the fetch fails it renders nothing, so the
+// sidebar stays clean — the meter never breaks the page.
 
-import { useState, useEffect, useCallback } from "react";
-import { usePathname } from "next/navigation";
-import { getQuota } from "@/lib/api";
-import type { Quota, QuotaUsage } from "@/lib/types";
+import type { QuotaUsage } from "@/lib/types";
+import { useQuota } from "./QuotaProvider";
 
 // Color the meter by how much is LEFT, not by how much was used:
 //   >30% left = emerald (healthy) · >10% left = amber · ≤10% left = red
@@ -35,9 +33,7 @@ const TEXT = {
 function Stat({ label, value }: { label: string; value: QuotaUsage }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[10px] uppercase tracking-wide text-zinc-600">
-        {label}
-      </span>
+      <span className="text-[10px] tracking-wide text-zinc-600 uppercase">{label}</span>
       <span className="text-sm text-zinc-300">
         {value.used}
         <span className="text-zinc-600">/{value.limit}</span>
@@ -47,27 +43,7 @@ function Stat({ label, value }: { label: string; value: QuotaUsage }) {
 }
 
 export default function QuotaMeter() {
-  const pathname = usePathname();
-  const [quota, setQuota] = useState<Quota | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      const data = await getQuota();
-      setQuota(data);
-      setFailed(false);
-    } catch {
-      // Endpoint unavailable (quota feature not deployed yet) → hide quietly.
-      setFailed(true);
-    }
-  }, []);
-
-  // Refetch on mount AND on every route change, so the bar is fresh after
-  // a chat reply, an upload, or a new chat. `quota` persists across these,
-  // so the shimmer only shows on first load (no flicker on navigation).
-  useEffect(() => {
-    load();
-  }, [load, pathname]);
+  const { quota, failed, refresh } = useQuota();
 
   if (failed) return null; // no backend → render nothing
 
@@ -90,11 +66,11 @@ export default function QuotaMeter() {
     <div className="mb-2 space-y-3 rounded-xl border border-white/10 bg-zinc-900/50 p-3">
       {/* Header row: label + manual refresh */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+        <span className="text-[10px] font-medium tracking-wider text-zinc-500 uppercase">
           Today's usage
         </span>
         <button
-          onClick={load}
+          onClick={() => void refresh()}
           className="rounded p-0.5 text-zinc-600 transition-colors hover:text-zinc-300"
           title="Refresh"
         >
@@ -114,9 +90,7 @@ export default function QuotaMeter() {
       <div className="space-y-1">
         <div className="flex items-baseline justify-between">
           <span className="text-xs text-zinc-400">Queries</span>
-          <span className={`text-xs font-medium ${TEXT[color]}`}>
-            {left} left
-          </span>
+          <span className={`text-xs font-medium ${TEXT[color]}`}>{left} left</span>
         </div>
         {/* Progress bar — fill width = used %, color = remaining health */}
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">

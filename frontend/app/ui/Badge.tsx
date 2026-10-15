@@ -26,25 +26,22 @@ export default function Badge({
   className = "",
 }: BadgeProps) {
   // Base classes for all badges
-  const base =
-    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium";
+  const base = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium";
 
   // Color variants
   const variants = {
-    emerald: "bg-emerald-500/10 text-emerald-400",   // Embedded / success
-    amber: "bg-amber-500/10 text-amber-400",         // Pending / processing
-    red: "bg-red-500/10 text-red-400",               // Failed / error
-    zinc: "bg-white/10 text-zinc-400",               // Default / neutral
-    violet: "bg-violet-500/10 text-violet-400",      // Multi-hop route
+    emerald: "bg-emerald-500/10 text-emerald-400", // Embedded / success
+    amber: "bg-amber-500/10 text-amber-400", // Pending / processing
+    red: "bg-red-500/10 text-red-400", // Failed / error
+    zinc: "bg-white/10 text-zinc-400", // Default / neutral
+    violet: "bg-violet-500/10 text-violet-400", // Multi-hop route
   };
 
   // Optional pulse animation for processing states
   const pulseClass = pulse ? "animate-pulse" : "";
 
   return (
-    <span className={`${base} ${variants[variant]} ${pulseClass} ${className}`}>
-      {children}
-    </span>
+    <span className={`${base} ${variants[variant]} ${pulseClass} ${className}`}>{children}</span>
   );
 }
 
@@ -53,9 +50,10 @@ export default function Badge({
 // This keeps the mapping logic in one place instead of scattered across components.
 import type { DocumentStatus } from "@/lib/types";
 
-export function statusBadgeVariant(
-  status: DocumentStatus
-): { variant: BadgeProps["variant"]; pulse: boolean } {
+export function statusBadgeVariant(status: DocumentStatus): {
+  variant: BadgeProps["variant"];
+  pulse: boolean;
+} {
   switch (status) {
     case "embedded":
       return { variant: "emerald", pulse: false };

@@ -5,9 +5,13 @@ import { useRouter } from "next/navigation";
 import { createConversation, ApiError } from "@/lib/api";
 import Button from "@/app/ui/Button";
 import Spinner from "@/app/ui/Spinner";
+import { useConversations } from "@/components/ConversationsProvider";
+import { useQuota } from "@/components/QuotaProvider";
 
 export default function ChatPage() {
   const router = useRouter();
+  const { refresh: refreshConversations } = useConversations();
+  const { refresh: refreshQuota } = useQuota();
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,6 +20,8 @@ export default function ChatPage() {
     setError(null);
     try {
       const conv = await createConversation("New chat");
+      await refreshConversations();
+      void refreshQuota();
       router.push(`/chat/${conv.id}`);
     } catch (err) {
       setCreating(false);
@@ -49,29 +55,18 @@ export default function ChatPage() {
           </svg>
         </div>
 
-        <h2 className="text-lg font-semibold text-zinc-100">
-          DevDocs Copilot
-        </h2>
+        <h2 className="text-lg font-semibold text-zinc-100">DevDocs Copilot</h2>
         <p className="mt-2 max-w-sm text-sm text-zinc-500">
-          Ask questions about your uploaded documents. The AI retrieves
-          relevant chunks and answers with citations.
+          Ask questions about your uploaded documents. The AI retrieves relevant chunks and answers
+          with citations.
         </p>
 
         {/* ── New Chat Button ── */}
-        <Button
-          onClick={handleNewChat}
-          disabled={creating}
-          className="mt-6"
-        >
+        <Button onClick={handleNewChat} disabled={creating} className="mt-6">
           {creating ? (
             <Spinner size="sm" />
           ) : (
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -82,9 +77,7 @@ export default function ChatPage() {
           )}
           {creating ? "Creating…" : "Start new chat"}
         </Button>
-        {error && (
-          <p className="mt-3 max-w-sm text-xs text-red-400">{error}</p>
-        )}
+        {error && <p className="mt-3 max-w-sm text-xs text-red-400">{error}</p>}
 
         {/* ── Tips ── */}
         <div className="mt-8 max-w-sm space-y-2 text-left">
