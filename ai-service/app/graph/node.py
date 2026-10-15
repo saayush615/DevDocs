@@ -13,6 +13,9 @@ OUTPUT_BLOCKED_ANSWER = "I can't share that response — it may contain restrict
 # Exact fallback — never guess, say this instead.
 FALLBACK_ANSWER = "I don't have enough information in the available documents."
 
+OFF_TOPIC_ANSWER = "I can only answer questions about your uploaded documents."
+
+
 def _extract_text(content) -> str:
     """Flash returns str OR [ {'type':'text','text':...} | obj with .text ]."""
     if isinstance(content, str):
@@ -29,26 +32,33 @@ def _extract_text(content) -> str:
         return "".join(parts)
     return str(content)
 
+
 def classify_q(state: AgentState) -> dict:
-    """Decide routing: 'simple' (one lookup) vs 'multi_hop' (compare/synthesize).
+    """Route: simple vs multi_hop vs off_topic (chitchat / not about docs).
 
     How it works:
       - Tiny LLM call with strict output contract: reply ONLY one word.
-      - Keyword fallback if LLM fails (graph must never crash).
+      - Keyword fallback if LLM fails (graph must never crash) — default simple.
     """
     question = state["question"]
     llm = get_llm()
 
     prompt = (
-        "You are a query router. Reply with ONLY one word: SIMPLE or MULTI_HOP.\n"
+        "You are a query router. Reply with ONLY one word: SIMPLE, MULTI_HOP, or OFF_TOPIC.\n"
+        "OFF_TOPIC = chitchat, weather, jokes, or anything clearly not about the user's documents.\n"
         "MULTI_HOP = comparison, multi-part, 'compare X and Y', 'summarize across docs', "
         "needs 2+ distinct facts combined.\n"
-        "SIMPLE = everything else (single fact lookup).\n"
+        "SIMPLE = a single-fact lookup in the user's documents.\n"
         f"Question: {question}\nAnswer:"
     )
     try:
         raw = _extract_text(llm.invoke(prompt).content).strip().upper()
-        route = "multi_hop" if "MULTI" in raw else "simple"
+        if "OFF" in raw or "TOPIC" in raw:
+            route = "off_topic"
+        elif "MULTI" in raw:
+            route = "multi_hop"
+        else:
+            route = "simple"
     except Exception:
         # Safe default: treat as simple so retrieval still runs.
         route = "simple"
@@ -63,12 +73,19 @@ def simple_rag(state: AgentState) -> dict:
       1. Qdrant search — isolation via user_id filter inside search_chunks().
       2. Build context block like [doc_id:chunk_2] snippet...
       3. Ask LLM: 'answer ONLY from context, else say you don't know'.
+
+    On re-entry after a failed grounding_check (`grounded` is False), bump
+    retry_count here — not in grounding_check, because LangGraph merges the
+    node patch before the conditional mapper runs.
     """
     question = state["question"]
     user_id = state["user_id"]
     top_k = state.get("top_k", 5)
     history = state.get("history", [])[-4:]  # last 4 turns = enough context, small prompt
     route = state.get("route", "simple")
+    retry_count = state.get("retry_count", 0)
+    if state.get("grounded") is False:
+        retry_count += 1
 
     # --- 1. Retrieve — CRITICAL: user_id filter prevents cross-user leaks ---
     # For MVP, multi_hop reuses the same retrieval but asks for deeper synthesis.
@@ -78,7 +95,12 @@ def simple_rag(state: AgentState) -> dict:
 
     # --- 2. No evidence? Don't call LLM, return empty draft (grounding will fail) ---
     if not chunks:
-        return {"chunks": [], "draft_answer": "", "citations": []}
+        return {
+            "chunks": [],
+            "draft_answer": "",
+            "citations": [],
+            "retry_count": retry_count,
+        }
 
     context = "\n\n".join(
         f"[{c['document_id']}:{c['chunk_index']}] {c['content_preview']}"
@@ -106,14 +128,19 @@ def simple_rag(state: AgentState) -> dict:
         }
         for c in chunks
     ]
-    return {"chunks": chunks, "draft_answer": draft, "citations": citations}
+    return {
+        "chunks": chunks,
+        "draft_answer": draft,
+        "citations": citations,
+        "retry_count": retry_count,
+    }
 
 
 def grounding_check(state: AgentState) -> dict:
     """Verify draft is SUPPORTED by retrieved chunks. Mandatory per AGENTS.md.
 
     Second LLM call acts as judge. If verdict is NOT grounded (or no chunks),
-    downstream final_answer will swap in the fallback sentence.
+    the graph retries simple_rag once, then fallback_response.
     """
     draft = state.get("draft_answer", "")
     chunks = state.get("chunks", [])
@@ -140,54 +167,56 @@ def grounding_check(state: AgentState) -> dict:
     return {"grounded": grounded}
 
 
-#  GUADS
 def input_guard(state: AgentState) -> dict:
-    """(V0) Screen the user's question BEFORE any LLM call / token spend.
+    """Screen the user's question BEFORE any LLM call / token spend.
 
-    Reads only the RAW question text (never the history). On BLOCK we fill in
-    the final-ish response ourselves (route='blocked', answer=BLOCKED_ANSWER,
-    empty citations) so the conditional edge in graph.py can jump straight to
-    END — classify_q and simple_rag never run => ZERO tokens spent.
+    Separates invalid vs allowed only. Does not pre-fill the user-facing
+    answer — fallback_response owns canned text. classify_q / simple_rag
+    never run on invalid input => ZERO tokens spent.
     """
     question = state["question"]
 
     if not run_input_guard(question):
-        # Blocked: pre-fill the response; the graph short-circuits to END.
         return {
-            "blocked": True,          # drives the conditional edge
-            "route": "blocked",       # contract value: simple | multi_hop | blocked
-            "answer": BLOCKED_ANSWER, # static refusal text
-            "citations": [],          # nothing retrieved, no sources
-            "grounded": False,        # nothing was grounded
+            "blocked": True,
+            "route": "invalid_input",
         }
 
-    # Allowed: just flag it and continue (classify_q -> simple_rag -> ...).
     return {"blocked": False}
 
+
+def fallback_response(state: AgentState) -> dict:
+    """Canned answer for invalid input, off-topic, or exhausted grounding. No LLM."""
+    route = state.get("route")
+    if route == "invalid_input":
+        return {"answer": BLOCKED_ANSWER, "citations": []}
+    if route == "off_topic":
+        return {"answer": OFF_TOPIC_ANSWER, "citations": []}
+    return {"answer": FALLBACK_ANSWER}
+
+
 def output_guard(state: AgentState) -> dict:
-    """(V0) Screen the final answer after grounding, before it is streamed.
+    """Screen the final answer after grounding, before it is streamed.
 
     Reads whatever `final_answer` produced and runs ProfanityFree + BanList on
-    it. On failure we swap in the standard "not enough information" fallback —
-    all-or-nothing, never a partially-flagged/redacted answer.
+    it. On failure we swap the answer — all-or-nothing, never a partial redact.
+    Does not change `route` / `blocked`: route_taken "blocked" is input-guard only.
     """
     answer = state.get("answer", "")  # filled by final_answer
 
     if not run_output_guard(answer):
-        # Answer flagged: replace the whole thing with the generic fallback.
         return {
-            "blocked": True,
-            "route": "blocked",
-            "answer": OUTPUT_BLOCKED_ANSWER, 
-            "citations": []
+            "answer": OUTPUT_BLOCKED_ANSWER,
+            "citations": [],
         }
 
-    # Answer is safe: return an empty change-set (LangGraph merges it as no-op).
     return {}
 
-# Final Answers
+
 def final_answer(state: AgentState) -> dict:
-    """Pick the user-facing answer: draft if grounded, else fallback."""
+    """Pick the user-facing answer: pass through canned text, else draft vs fallback."""
+    if state.get("answer"):
+        return {}
     if state.get("grounded") and state.get("draft_answer"):
         return {"answer": state["draft_answer"]}
     return {"answer": FALLBACK_ANSWER, "grounded": False}
