@@ -66,7 +66,7 @@ Qdrant (vector DB)
 - [x] **Burst rate limiting per user/IP** on chat, upload, and auth (return `429` before any work)
 - [x] `UsageDaily` metering — Node records per-user daily counts and enforces budgets
 - [x] `429` surfaced in the UI before any work begins
-- [ ] Improve Frontend & Fix minor bugs
+- [x] Improve Frontend & Fix minor bugs
 
 
 ### V1 — LangGraph Hardening + Streaming + Minimal Tenancy
