@@ -24,6 +24,6 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   citations: Citation[] | null;
-  routeTaken: string | null; // "simple" or "multi_hop"
+  routeTaken: string | null; // "simple" | "multi_hop" | "blocked" | "off_topic"
   createdAt: string;
 }
