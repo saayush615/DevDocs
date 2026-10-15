@@ -87,8 +87,8 @@ fallback_response → final_answer
 final_answer → END
 ```
 
-- [ ] **State:** Add `retry_count` (int, default 0). Track `route` values (`simple`, `multi_hop`, `off_topic`, `invalid_input`). Define `route_taken` as `simple | multi_hop | blocked | off_topic`.
-- [ ] **Nodes/Edges:** Implement `input_guard` (separates invalid vs allowed), `fallback_response`, wire conditional edges with retry logic.
+- [x] **State:** Add `retry_count` (int, default 0). Track `route` values (`simple`, `multi_hop`, `off_topic`, `invalid_input`). Define `route_taken` as `simple | multi_hop | blocked | off_topic`.
+- [x] **Nodes/Edges:** Implement `input_guard` (separates invalid vs allowed), `fallback_response`, wire conditional edges with retry logic.
 - [ ] **Streaming:** Harden SSE (FastAPI → Node → client), verify citations arrive in trailing `done` event; ensure no buffering/mid-stream cutoff.
 - [ ] **Minimal Org Tenancy:** Add `organization_id` to `User`, `Document`, `Conversation`, `UsageDaily`; default org on signup; **enforce Qdrant filter by `organization_id` AND `user_id`** on all retrieval (no UI/invites/RBAC).
 - [ ] **Backend/Frontend Polish:** Align contracts with new `route_taken` values; surface clearer errors.
