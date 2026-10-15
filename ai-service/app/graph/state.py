@@ -19,9 +19,10 @@ class AgentState(TypedDict, total=False):
     user_id: str           # for Qdrant user_id filter (isolation!)
     history: list[dict]    # [{"role":..., "content":...}] prior turns
     top_k: int             # retrieval depth
+    retry_count: int       # grounding retries; seed 0, bump on simple_rag re-entry
 
-    blocked: bool          # True when input_guard rejects the question
-    route: str             # "simple" | "multi_hop" | "blocked"
+    blocked: bool          # True if input_guard rejected the question
+    route: str             # "simple" | "multi_hop" | "off_topic" | "invalid_input"
     chunks: list[dict]     # raw hits from search_chunks()
     draft_answer: str      # LLM answer BEFORE grounding check
     grounded: bool         # grounding_check verdict
