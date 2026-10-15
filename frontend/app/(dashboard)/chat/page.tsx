@@ -5,9 +5,13 @@ import { useRouter } from "next/navigation";
 import { createConversation, ApiError } from "@/lib/api";
 import Button from "@/app/ui/Button";
 import Spinner from "@/app/ui/Spinner";
+import { useConversations } from "@/components/ConversationsProvider";
+import { useQuota } from "@/components/QuotaProvider";
 
 export default function ChatPage() {
   const router = useRouter();
+  const { refresh: refreshConversations } = useConversations();
+  const { refresh: refreshQuota } = useQuota();
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,6 +20,8 @@ export default function ChatPage() {
     setError(null);
     try {
       const conv = await createConversation("New chat");
+      await refreshConversations();
+      void refreshQuota();
       router.push(`/chat/${conv.id}`);
     } catch (err) {
       setCreating(false);

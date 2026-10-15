@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession, signOut } from "@/lib/auth";
-import { listConversations, createConversation, deleteConversation } from "@/lib/api";
-import type { Conversation } from "@/lib/types";
+import { createConversation, deleteConversation } from "@/lib/api";
 import Button from "@/app/ui/Button";
 import QuotaMeter from "./QuotaMeter";
+import { useConversations } from "./ConversationsProvider";
 import { useQuota } from "./QuotaProvider";
 
 export default function Sidebar() {
@@ -14,27 +14,9 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { refresh: refreshQuota } = useQuota();
+  const { conversations, loading, refresh } = useConversations();
 
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-
-  // Fetch conversations
-  const refresh = useCallback(async () => {
-    try {
-      const data = await listConversations();
-      setConversations(data);
-    } catch {
-      // Silently fail — sidebar will show empty list, user can retry
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Fetch conversations on mount
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
 
   // "New Chat" btn handler
   async function handleNewChat() {
