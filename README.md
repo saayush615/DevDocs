@@ -89,7 +89,6 @@ final_answer → END
 
 - [x] **State:** Add `retry_count` (int, default 0). Track `route` values (`simple`, `multi_hop`, `off_topic`, `invalid_input`). Define `route_taken` as `simple | multi_hop | blocked | off_topic`.
 - [x] **Nodes/Edges:** Implement `input_guard` (separates invalid vs allowed), `fallback_response`, wire conditional edges with retry logic.
-- [ ] **Streaming:** Harden SSE (FastAPI → Node → client), verify citations arrive in trailing `done` event; ensure no buffering/mid-stream cutoff.
 
 ### V2 — PDF Ingestion + Provenance + Voice Agent (Demo Ready)
 **Goal:** Ship PDF ingestion with provenance-rich citations and voice (STT + TTS)
