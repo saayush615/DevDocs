@@ -2,7 +2,7 @@
 
 **Source of truth:** Architecture, scope, and phase boundaries. Demo focus: Working LangGraph + rate limiting + PDF ingestion + voice (STT/TTS).
 
-**Rule:** Frontend never calls AI service directly. Node is the single auth/policy boundary. All retrieval filtered by `organization_id` AND `user_id` at Qdrant level.
+**Rule:** Frontend never calls AI service directly. Node is the single auth/policy boundary. All retrieval filtered by `user_id` at Qdrant level.
 
 ---
 
@@ -22,12 +22,12 @@ Next.js (frontend) → Node.js (BFF: auth, quotas, system of record, SSE bridge)
                         ↓  (service-to-service Bearer token)
                      FastAPI (stateless: /ingest, /query + LangGraph)
                         ↓
-                     Qdrant (doc_chunks, filtered by org_id+user_id)
+                     Qdrant (doc_chunks, filtered by user_id)
 ```
 
 - **Node:** Auth (better-auth), quotas + burst rate limits (V0), usage metering, upload/chat, channel gateway (V3), MCP (V4). Never exposes FastAPI URL to frontend.
 - **FastAPI:** Stateless, trusts only service token. `/ingest` chunks+embeds (Gemini) → Qdrant; `/query` runs LangGraph → SSE back to Node.
-- **Qdrant:** All queries filtered by `organization_id` AND `user_id`. Keyword indexes on both.
+- **Qdrant:** All queries filtered by `user_id`. Keyword index on `user_id`.
 - **Frontend:** Next.js App Router, react-hook-form + zod, streams via SSE; citations in trailing `done` event.
 
 ---
@@ -71,10 +71,9 @@ final_answer → END
 - `retry_count` in state; single retry on grounding fail before fallback.
 - Grounding fail-closed. `output_guard` (ProfanityFree+BanList) can replace whole answer with fallback.
 
-### 2.3 Goals (V1 — LangGraph Hardening + Streaming + Minimal Tenancy)
+### 2.3 Goals (V1 — LangGraph Hardening + Streaming)
 - **LangGraph hardening:** Add `retry_count`, handle `off_topic`/`invalid_input`, implement `input_guard` + `fallback_response`, retry-on-grounding (once), wire correct edges.
 - **Streaming:** Harden SSE (FastAPI→Node→client), ensure citations arrive in trailing `done` event with no buffering.
-- **Minimal org tenancy:** Add `organization_id` to `User`, `Document`, `Conversation`, `UsageDaily`; default org on signup; enforce Qdrant filter by `organization_id` AND `user_id` on all retrieval.
 - **Polish:** Align contracts with `route_taken` (`simple|multi_hop|blocked|off_topic`), surface clearer errors.
 - **Scope:** Remove per-answer feedback loop; multi-hop branch deferred.
 
@@ -86,11 +85,11 @@ final_answer → END
 ### 2.5 Goals (V3 — Teams & Integrations)
 - **Integrations:** Slack (Bolt) + Discord (`discord.js`); OAuth login + identity linking (unlinked refused).
 - **Chat behavior:** Non-streamed replies for channels (typing indicator + final/edit).
-- **Teams:** Multi-tenant orgs + invites; departments/roles/permissions matrix; access-scoped retrieval (org + dept/role markers); leak-closed on ACL change.
+- **Teams:** Departments/roles/permissions matrix; access-scoped retrieval (dept/role markers); leak-closed on ACL change.
 
 ### 2.6 Goals (V4 — Multi-Hop + Connect)
 - **Multi-hop:** `multi_hop_planner → retrieve_each (≤4) → synthesize` with dedup; reuse grounding/fallback.
-- **Connect:** MCP server on Node (`search_docs`, `get_document`, `query`, `create_flag`) with user/org context; external agents query with correct isolation.
+- **Connect:** MCP server on Node (`search_docs`, `get_document`, `query`, `create_flag`) with user context; external agents query with correct isolation.
 
 ### 2.7 Non-Goals
 - No general-purpose chatbot (no small talk, no unrelated Q&A).
@@ -111,7 +110,7 @@ Next.js (frontend)                          External channels (V2): Slack / Disc
    ▼                                            ▼
 Node.js (BFF / backend) ◄───────────────────────┘
    │ - Auth & sessions (better-auth)
-   │ - Postgres: users, orgs, documents, conversations, messages, usage/quota
+   │ - Postgres: users, documents, conversations, messages, usage/quota
    │ - Quotas + rate limiting (V0)
    │ - Document extraction (V1): md/txt, PDF, GitHub, web URL
    │ - Channel gateway (V2) / MCP server: search_docs, get_document, query, create_flag (V4)
@@ -141,7 +140,7 @@ Qdrant (vector DB)
   - **Usage metering (V0):** persists per-user daily counts (`UsageDaily`) from Node's own request tracking — FastAPI reports no token usage in V0.
   - **Document upload endpoint:** accepts file/URL/repo link, extracts raw text (V1: md/txt/PDF/GitHub/web via `extract.service.ts`), stores metadata, forwards content + provenance to FastAPI `/ingest`.
   - **Chat endpoint:** accepts question + conversation_id, checks quota, forwards to FastAPI `/query/stream` with service-to-service auth, streams the response back via SSE (token-by-token), persists message + citations + route.
-  - **Channel gateway (V2):** thin adapters (`slack.adapter.ts`, `discord.adapter.ts`) normalizing inbound to `{identity, org, text}` and calling the same core chat path as the web UI, so quotas and metering apply identically.
+  - **Channel gateway (V2):** thin adapters (`slack.adapter.ts`, `discord.adapter.ts`) normalizing inbound to `{identity, text}` and calling the same core chat path as the web UI, so quotas and metering apply identically.
   - **MCP server (V4):** `search_docs`, `get_document`, `query`, `create_flag` tools; all AI work still routed through FastAPI.
   - Conversation CRUD endpoints.
   - **Never exposes FastAPI's URL or embedding/LLM logic to the frontend.**
@@ -149,7 +148,7 @@ Qdrant (vector DB)
 ### 3.3 AI Service (FastAPI)
 - Stateless. Trusts only requests carrying a valid service-to-service token (`auth.py`) issued by Node.
 - Responsibilities:
-  - `/ingest`: chunk incoming text (heading-aware; page-boundary-safe for PDFs), embed, upsert to Qdrant with payload `{document_id, user_id, organization_id, chunk_index, content_preview, title, source_type, source_url, page?, heading?}`.
+  - `/ingest`: chunk incoming text (heading-aware; page-boundary-safe for PDFs), embed, upsert to Qdrant with payload `{document_id, user_id, chunk_index, content_preview, title, source_type, source_url, page?, heading?}`.
 - `/query`: run the LangGraph agent (§4) and stream the final answer + citations back to Node. (V0: no token-usage reporting — per-node `usage_metadata` is a V1+ addition.)
   - **Observability (V0):** every graph run emits a **LangSmith** trace (per-node spans, route, grounding verdict, token usage). Enabled by env (`LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`).
   - **Safety guardrails (V0):** `input_guard` screens the question (regex prompt-injection filter + **Guardrails AI** `ProfanityFree`) before classification; `grounding_check` keeps the existing simple custom validator; `output_guard` screens the final answer (**Guardrails AI** `ProfanityFree` + `BanList`, terms from `GUARD_BANNED_WORDS`). Input/output guard nodes are env-toggleable and fail closed.
@@ -160,8 +159,8 @@ Qdrant (vector DB)
 ### 3.4 Vector Database (Qdrant)
 - Collection: `doc_chunks`.
 - Vector size matches the embedding model output (768 for the configured Gemini truncation).
-- Payload fields: `document_id`, `user_id`, `organization_id`, `chunk_index`, `content_preview`, `title`, `source_type`, `source_url`, `page`, `heading`. Keyword indexes exist on `user_id` and `organization_id` so filtered searches do not full-scan.
-- **All queries are filtered at the Qdrant query level** by `organization_id` AND `user_id` (V1; `organization_id` added defensively in V1). V3 composes department/role access markers on top. No cross-tenant or cross-user leakage, ever.
+- Payload fields: `document_id`, `user_id`, `chunk_index`, `content_preview`, `title`, `source_type`, `source_url`, `page`, `heading`. A keyword index exists on `user_id` so filtered searches do not full-scan.
+- **All queries are filtered at the Qdrant query level** by `user_id`. V3 composes department/role access markers on top. No cross-user leakage, ever.
 
 ### 3.5 Code Quality & Language Standards
 - **Language:** TypeScript for the Next.js frontend and Node.js backend (strict mode in `tsconfig.json`). FastAPI is Python with type hints; Pydantic models for all request/response schemas.
@@ -182,15 +181,15 @@ Qdrant (vector DB)
 
 **Planned:**
 - **V0:** `UsageDaily` (userId,date,queryCount,uploadCount; unique[userId,date]) — Node-enforced
-- **V1:** `Organization` + `organization_id` on User/Document/Conversation; `Document` += `sourceUrl,contentHash,fetchedAt,chunkConfig,embeddingModel`
-- **V2:** `LinkedIdentity` (userId,orgId,provider,externalId)
+- **V1:** `Document` += `sourceUrl,contentHash,fetchedAt,chunkConfig,embeddingModel`
+- **V2:** `LinkedIdentity` (userId,provider,externalId)
 - **V3+:** `Membership`, `Department`, `Role`, `Permission`, `DocumentAcl`
 
 ---
 
 ## 5. Data Model (Postgres)
 
-Auth tables (`User`, `Session`, `Account`, `Verification`) are created and managed by better-auth via the Prisma adapter — do not define them manually. Domain tables reference user ids, and from V1, organization ids.
+Auth tables (`User`, `Session`, `Account`, `Verification`) are created and managed by better-auth via the Prisma adapter — do not define them manually. Domain tables reference user ids.
 
 ### 5.1 Implemented (MVP)
 ```prisma
@@ -215,18 +214,17 @@ model UsageDaily {
 ```
 Lifetime caps need no extra columns — Node enforces them with a `COUNT(*)` at create time.
 
-V1 — tenancy insurance + provenance + feedback:
-- `Organization { id, name, slug }`; `User.organizationId` (set at signup via a better-auth `user.create.after` hook, seeded default org), `Document.organizationId`, `Conversation.organizationId`.
+V1 — provenance + feedback:
 - `Document` += `sourceUrl`, `contentHash` (dedup), `fetchedAt`, `chunkConfig`, `embeddingModel`.
 - `Message.feedback` enum (`none | up | down`) + `POST /api/chat/:messageId/feedback`.
 
 V2 — identity linking:
-- `LinkedIdentity { id, userId, organizationId, provider, externalId, @@unique([provider, externalId]) }`.
+- `LinkedIdentity { id, userId, provider, externalId, @@unique([provider, externalId]) }`.
 
-V3 — organizations/RBAC (concepts locked here; schema finalized when V3 is planned):
-- `Membership { userId, organizationId, departmentId?, roleId }`
-- `Department { id, organizationId, name }`
-- `Role`, `Permission` (resource × action matrix), `DocumentAcl` (scope: org-wide | department | role | specific users).
+V3 — RBAC (concepts locked here; schema finalized when V3 is planned):
+- `Membership { userId, departmentId?, roleId }`
+- `Department { id, name }`
+- `Role`, `Permission` (resource × action matrix), `DocumentAcl` (scope: department | role | specific users).
 
 ---
 
@@ -236,11 +234,11 @@ V3 — organizations/RBAC (concepts locked here; schema finalized when V3 is pla
 
 ```
 POST /ingest
-Request:  { document_id, user_id, organization_id, content, source_type, source_url?, title?, sections? }
+Request:  { document_id, user_id, content, source_type, source_url?, title?, sections? }
 Response: { status: "embedded", chunks_created: <int> }     // usage.embedding_tokens added in V1+
 
 POST /query/stream   (SSE; used by web chat, and by Node internally for channels in V2)
-Request:  { conversation_id, user_id, organization_id, question, history: [{role, content}], top_k }
+Request:  { conversation_id, user_id, question, history: [{role, content}], top_k }
 Stream events:
   data: {"token": "word "}          (repeated until the answer completes)
   data: {"done": true, citations: [...], route_taken: "..."}   // usage added in V1+
@@ -251,8 +249,6 @@ Response: { answer, citations, route_taken }                  // usage added in 
 ```
 
 `route_taken` is `simple` | `multi_hop` | `blocked`. A `blocked` run (input_guard rejection) returns a canned refusal with empty citations and no usage.
-
-`organization_id` is always stamped by Node from the authenticated session — never accepted from the client.
 
 **Next.js → Node** (better-auth under the hood; session cookie)
 
@@ -272,7 +268,7 @@ FastAPI must never be called from the frontend directly. All FastAPI endpoints r
 
 ## 6. Non-Functional
 
-- **Isolation:** `organization_id` + `user_id` at Qdrant (mandatory). Leak-closed on ACL changes (V3).
+- **Isolation:** `user_id` at Qdrant (mandatory). Leak-closed on ACL changes (V3).
 - **Quotas + rate limits (V0):** Daily quotas, lifetime caps, per-file size cap, per-user/IP burst (chat/upload/auth). Enforced by Node before work → `429` (never cut stream).
 - **Guardrails (V0):** `input_guard` (regex + Guardrails AI ProfanityFree) before classify; `grounding_check` fail-closed; `output_guard` (ProfanityFree+BanList) after final. Env-toggleable.
 - **Observability:** LangSmith on every run (spans, route, grounding, token usage).

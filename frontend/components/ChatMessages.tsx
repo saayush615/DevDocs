@@ -9,6 +9,20 @@ interface ChatMessagesProps {
   messages: Message[];
 }
 
+function routeBadgeVariant(routeTaken: string): "violet" | "red" | "amber" | "zinc" {
+  if (routeTaken === "multi_hop") return "violet";
+  if (routeTaken === "blocked") return "red";
+  if (routeTaken === "off_topic") return "amber";
+  return "zinc";
+}
+
+function routeBadgeLabel(routeTaken: string): string {
+  if (routeTaken === "multi_hop") return "Multi-hop";
+  if (routeTaken === "blocked") return "Blocked";
+  if (routeTaken === "off_topic") return "Off-topic";
+  return "Simple retrieval";
+}
+
 export default function ChatMessages({ messages }: ChatMessagesProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -49,8 +63,8 @@ export default function ChatMessages({ messages }: ChatMessagesProps) {
                 {/* Badge showing which route the agent took */}
                 {msg.routeTaken && (
                   <div>
-                    <Badge variant={msg.routeTaken === "multi_hop" ? "violet" : "zinc"}>
-                      {msg.routeTaken === "multi_hop" ? "Multi-hop" : "Simple retrieval"}
+                    <Badge variant={routeBadgeVariant(msg.routeTaken)}>
+                      {routeBadgeLabel(msg.routeTaken)}
                     </Badge>
                   </div>
                 )}

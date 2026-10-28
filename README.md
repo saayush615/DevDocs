@@ -69,8 +69,8 @@ Qdrant (vector DB)
 - [x] Improve Frontend & Fix minor bugs
 
 
-### V1 — LangGraph Hardening + Streaming + Minimal Tenancy
-**Goal:** Evolve agent to robust graph with fallback, retry, off-topic handling, improve streaming, and add minimal org isolation.
+### V1 — LangGraph Hardening + Streaming
+**Goal:** Evolve agent to robust graph with fallback, retry, off-topic handling, and improve streaming.
 
 **LangGraph Design:**
 ```
@@ -87,19 +87,8 @@ fallback_response → final_answer
 final_answer → END
 ```
 
-- [ ] **State:** Add `retry_count` (int, default 0). Track `route` values (`simple`, `multi_hop`, `off_topic`, `invalid_input`). Define `route_taken` as `simple | multi_hop | blocked | off_topic`.
-- [ ] **Nodes/Edges:** Implement `input_guard` (separates invalid vs allowed), `fallback_response`, wire conditional edges with retry logic.
-- [ ] **Streaming:** Harden SSE (FastAPI → Node → client), verify citations arrive in trailing `done` event; ensure no buffering/mid-stream cutoff.
-- [ ] **Minimal Org Tenancy:** Add `organization_id` to `User`, `Document`, `Conversation`, `UsageDaily`; default org on signup; **enforce Qdrant filter by `organization_id` AND `user_id`** on all retrieval (no UI/invites/RBAC).
-- [ ] **Backend/Frontend Polish:** Align contracts with new `route_taken` values; surface clearer errors.
-- [ ] **Scope:** Remove per-answer feedback loop (tighten scope). Multi-hop branch deferred.
-
-**V1 Acceptance:**
-- [ ] Off-topic question → fallback_response (`route_taken: "off_topic"`)
-- [ ] Invalid/malicious input → blocked/fallback per edges; `blocked` only on input_guard rejection
-- [ ] Grounding fails once → retry (retry_count increments), fails twice → fallback
-- [ ] SSE streaming works end-to-end; citations + `route_taken` in trailing event
-- [ ] All retrieval filtered by `organization_id` AND `user_id` (isolation verified)
+- [x] **State:** Add `retry_count` (int, default 0). Track `route` values (`simple`, `multi_hop`, `off_topic`, `invalid_input`). Define `route_taken` as `simple | multi_hop | blocked | off_topic`.
+- [x] **Nodes/Edges:** Implement `input_guard` (separates invalid vs allowed), `fallback_response`, wire conditional edges with retry logic.
 
 ### V2 — PDF Ingestion + Provenance + Voice Agent (Demo Ready)
 **Goal:** Ship PDF ingestion with provenance-rich citations and voice (STT + TTS)
@@ -129,17 +118,13 @@ final_answer → END
 - [ ] Slack adapter (Bolt) + Discord adapter (`discord.js`)
 - [ ] OAuth login & identity linking; unlinked identities refused
 - [ ] Non-streamed replies (typing indicator + final message)
-- [ ] Multi-tenant orgs with onboarding/invites
 - [ ] Departments (scoping) + roles (permissions) with permission matrix
-- [ ] Access-scoped retrieval at Qdrant level (org + dept/role markers)
+- [ ] Access-scoped retrieval at Qdrant level (dept/role markers)
 
 ### V4 — Multi-Hop + Connect
 - [ ] **Multi-hop RAG:** `multi_hop_planner → retrieve_each (fan-out ≤4) → synthesize` with dedup; reuse grounding/fallback
 - [ ] MCP server on Node (`search_docs`, `get_document`, `query`, `create_flag`)
-- [ ] External agents can query org knowledge with correct isolation
-
-### V5 — Multitenancy (Advanced)
-- [ ] Advanced multitenancy with granular permissions (as needed; planned later)
+- [ ] External agents can query a user's knowledge with correct isolation
 
 **Explicitly deferred:** WhatsApp, semantic memory layer (mem0-style), signup abuse guard (email verification/IP throttling), per-token usage metering (FastAPI-reported token budgets), BM25/cross-encoder retrieval upgrades, GitHub repo/URL ingestion (beyond MVP PDF).
 
