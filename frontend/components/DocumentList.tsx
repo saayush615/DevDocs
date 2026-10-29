@@ -84,7 +84,9 @@ export default function DocumentList() {
           />
         </svg>
         <p className="text-sm text-zinc-400">No documents yet</p>
-        <p className="mt-1 text-xs text-zinc-600">Upload a .md or .txt file to get started</p>
+        <p className="mt-1 text-xs text-zinc-600">
+          Upload a .md, .txt, or .pdf file to get started
+        </p>
       </div>
     );
   }
@@ -96,6 +98,7 @@ export default function DocumentList() {
         // Get badge color + pulse based on document status
         const badge = statusBadgeVariant(doc.status);
         const isProcessing = doc.status === "pending" || doc.status === "chunking";
+        const detail = isProcessing ? "Processing…" : `${doc.chunkCount} chunks`;
 
         return (
           <div
@@ -106,8 +109,7 @@ export default function DocumentList() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-zinc-100">{doc.title}</p>
               <p className="mt-0.5 text-xs text-zinc-500">
-                {doc.chunkCount > 0 ? `${doc.chunkCount} chunks` : "Processing…"} ·{" "}
-                {new Date(doc.createdAt).toLocaleDateString()}
+                {doc.sourceType} · {detail} · {new Date(doc.createdAt).toLocaleDateString()}
               </p>
             </div>
 

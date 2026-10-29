@@ -16,6 +16,7 @@ export interface Citation {
   document_id: string;
   chunk_index: number;
   snippet: string;
+  page?: number | null;
 }
 
 export interface Message {

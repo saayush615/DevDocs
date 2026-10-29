@@ -127,7 +127,9 @@ export default function ChatMessages({ messages }: ChatMessagesProps) {
                           className="rounded-lg border border-white/5 bg-zinc-900/50 p-3"
                         >
                           <p className="text-xs text-zinc-500">
-                            Doc: {cite.document_id.slice(0, 8)}… · Chunk {cite.chunk_index}
+                            Doc: {cite.document_id.slice(0, 8)}…
+                            {cite.page != null ? ` · Page ${cite.page}` : ""} · Chunk{" "}
+                            {cite.chunk_index}
                           </p>
                           <p className="mt-1 text-xs text-zinc-400">{cite.snippet}</p>
                         </div>
