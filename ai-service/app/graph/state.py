@@ -27,4 +27,4 @@ class AgentState(TypedDict, total=False):
     draft_answer: str      # LLM answer BEFORE grounding check
     grounded: bool         # grounding_check verdict
     answer: str            # final user-facing text
-    citations: list[dict]  # [{document_id, chunk_index, snippet}]
+    citations: list[dict]  # [{document_id, chunk_index, snippet, page?}]
