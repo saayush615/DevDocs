@@ -1,6 +1,6 @@
 # DevDocs Copilot — PRD
 
-**Source of truth:** Architecture, scope, and phase boundaries. Demo focus: Working LangGraph + rate limiting + PDF ingestion + voice (STT/TTS).
+**Source of truth:** Architecture, scope, and phase boundaries. Demo focus: Working LangGraph + rate limiting + PDF ingestion + voice input (STT only; TTS deferred).
 
 **Rule:** Frontend never calls AI service directly. Node is the single auth/policy boundary. All retrieval filtered by `user_id` at Qdrant level.
 
@@ -79,8 +79,8 @@ final_answer → END
 
 ### 2.4 Goals (V2 — PDF + Provenance + Voice)
 - **PDF ingestion:** Page-aware extraction with page numbers; `source_type: "pdf"`, provenance fields (`page`, `title`, `source_type`, `source_url`); citations include `page`.
-- **Voice agent:** Mic input, STT (browser-first), TTS for assistant answer; auth-protected voice endpoints if using backend APIs.
-- **Integration:** Speak → transcribe → query → stream → speak.
+- **Voice agent:** Mic input and speech-to-text (browser-first). Transcribed text is sent as the chat query. Auth-protected `POST /api/voice/transcribe` only if not using browser APIs. Text-to-speech is out of V2.
+- **Integration:** Speak → transcribe → query → stream. The assistant answer stays text in the chat.
 
 ### 2.5 Goals (V3 — Teams & Integrations)
 - **Integrations:** Slack (Bolt) + Discord (`discord.js`); OAuth login + identity linking (unlinked refused).
@@ -96,6 +96,7 @@ final_answer → END
 - No real-time collaborative editing of docs.
 - No non-text file types (images, video).
 - No WhatsApp until paid phase (Meta Business API).
+- No text-to-speech (TTS) in V2. Spoken playback of answers is deferred.
 - No semantic memory layer (mem0-style). If needed, prefer conversation summarization over unattributed memory.
 
 ---
