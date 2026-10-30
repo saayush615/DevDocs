@@ -118,8 +118,6 @@ final_answer → END
 - [ ] Slack adapter (Bolt) + Discord adapter (`discord.js`)
 - [ ] OAuth login & identity linking; unlinked identities refused
 - [ ] Non-streamed replies (typing indicator + final message)
-- [ ] Departments (scoping) + roles (permissions) with permission matrix
-- [ ] Access-scoped retrieval at Qdrant level (dept/role markers)
 
 ### V4 — Multi-Hop + Connect
 - [ ] **Multi-hop RAG:** `multi_hop_planner → retrieve_each (fan-out ≤4) → synthesize` with dedup; reuse grounding/fallback

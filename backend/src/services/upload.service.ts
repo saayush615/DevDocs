@@ -1,9 +1,10 @@
 import { prisma } from '../lib/prisma.js';
 import { Errors } from '../lib/errorFactory.js';
 import { ingestDocument } from './aiClient.service.js';
+import { extractUpload, sourceTypeForFilename } from './extract.service.js';
 
 export async function ingestUploadedFile(userId: string, originalname: string, buffer: Buffer) {
-  const sourceType = originalname.endsWith('.md') ? 'markdown' : 'text';
+  const sourceType = sourceTypeForFilename(originalname);
 
   // 1. Pending row first so UI has something immediately.
   const doc = await prisma.document.create({
@@ -13,15 +14,16 @@ export async function ingestUploadedFile(userId: string, originalname: string, b
   try {
     // 2. Mark chunking + extract text from memory buffer.
     await prisma.document.update({ where: { id: doc.id }, data: { status: 'chunking' } });
-    const content = buffer.toString('utf-8').trim();
-    if (!content) throw Errors.badRequest('Empty file');
+    const extracted = await extractUpload(originalname, buffer);
 
     // 3. Forward to FastAPI (chunks + embeds + Qdrant).
     const result = await ingestDocument({
       document_id: doc.id,
       user_id: userId,
-      content,
-      source_type: 'text',
+      content: extracted.content,
+      source_type: extracted.sourceType,
+      title: originalname,
+      ...(extracted.sections ? { sections: extracted.sections } : {}),
     });
 
     // 4. AI returns 200 even on failure — must check the status field.
