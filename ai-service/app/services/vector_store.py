@@ -50,7 +50,10 @@ def init_collection() -> None:
 def upsert_chunks(
     document_id: str,
     user_id: str,
-    chunks: list[str],
+    chunks: list[dict],
+    title: str | None = None,
+    source_type: str | None = None,
+    source_url: str | None = None,
 ) -> int:
     """
     Store document chunks in Qdrant (embedding done internally by the store).
@@ -61,25 +64,34 @@ def upsert_chunks(
     Args:
         document_id: ID of the document (from backend database)
         user_id: ID of the user who owns this document
-        chunks: List of text chunks from chunk_text()
+        chunks: List of {text, page} chunks from the chunker
+        title: Document title stored on each point when present
+        source_type: markdown | text | pdf
+        source_url: Optional origin URL; omitted for file uploads
 
     Returns:
         Number of chunks stored
     """
     # Wrap each chunk in a LangChain Document. page_content is the searchable
     # text; metadata dict becomes the Qdrant point payload automatically.
-    documents = [
-        Document(
-            page_content=chunk,
-            metadata={
-                "document_id": document_id,
-                "user_id": user_id,
-                "chunk_index": i,
-                "content_preview": chunk[:500],  # first 500 chars for citations
-            },
-        )
-        for i, chunk in enumerate(chunks)
-    ]
+    documents: list[Document] = []
+    for i, chunk in enumerate(chunks):
+        text = str(chunk["text"])
+        metadata: dict = {
+            "document_id": document_id,
+            "user_id": user_id,
+            "chunk_index": i,
+            "content_preview": text[:500],  # first 500 chars for citations
+        }
+        if title:
+            metadata["title"] = title
+        if source_type:
+            metadata["source_type"] = source_type
+        if source_url:
+            metadata["source_url"] = source_url
+        if chunk.get("page") is not None:
+            metadata["page"] = int(chunk["page"])
+        documents.append(Document(page_content=text, metadata=metadata))
 
     store.add_documents(documents=documents)
 
@@ -133,6 +145,7 @@ def search_chunks(
             "document_id": doc.metadata["document_id"],
             "chunk_index": doc.metadata["chunk_index"],
             "content_preview": doc.metadata["content_preview"],
+            "page": doc.metadata.get("page"),
         }
         for doc, score in hits
     ]

@@ -27,8 +27,8 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
 
     // Client-side validation: check file extension
     const ext = file.name.split(".").pop()?.toLowerCase();
-    if (ext !== "md" && ext !== "txt") {
-      setError("Only .md and .txt files are allowed");
+    if (ext !== "md" && ext !== "txt" && ext !== "pdf") {
+      setError("Only .md, .txt, and .pdf files are allowed");
       return;
     }
 
@@ -45,6 +45,7 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
       onUpload(); // Trigger list refresh in parent
       void refreshQuota();
     } catch (err) {
+      onUpload();
       if (err instanceof ApiError && (err.status === 429 || err.status === 413)) {
         void refreshQuota();
         setError(
@@ -123,7 +124,7 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
             <p className="text-sm text-zinc-400">
               Drop a file here or <span className="text-emerald-400">browse</span>
             </p>
-            <p className="mt-1 text-xs text-zinc-600">.md or .txt, up to 2MB</p>
+            <p className="mt-1 text-xs text-zinc-600">.md, .txt, or .pdf, up to {maxFileMB}MB</p>
           </>
         )}
       </div>
@@ -132,7 +133,7 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".md,.txt"
+        accept=".md,.txt,.pdf"
         onChange={handleChange}
         className="hidden"
       />

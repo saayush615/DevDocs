@@ -82,7 +82,7 @@ model Document {
   userId     String
   user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   title      String
-  sourceType String // 'markdown' | 'text' (MVP only)
+  sourceType String // 'markdown' | 'text' | 'pdf'
   status     DocumentStatus @default(pending)
   chunkCount Int            @default(0)
   createdAt  DateTime       @default(now())

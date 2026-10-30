@@ -1,12 +1,21 @@
 from typing import Literal
 from pydantic import BaseModel, Field
 
+class PageSection(BaseModel):
+    """One PDF page of extracted text. Page numbers stay 1-based and are not renumbered."""
+    page: int = Field(ge=1)
+    text: str
+
+
 class IngestRequest(BaseModel):
     """What nodejs backend sends us when uploading a docs."""
     document_id: str
     user_id: str        # ID of the user who owns this document
     content: str        # The full text content of the document
-    source_type: str    # Type: "markdown", "text", etc.
+    source_type: str    # Type: "markdown", "text", "pdf"
+    title: str | None = None
+    source_url: str | None = None
+    sections: list[PageSection] | None = None
 
 class IngestResponse(BaseModel):
     """What we send after successful ingestion."""
@@ -37,6 +46,7 @@ class Citation(BaseModel):
     document_id: str
     chunk_index: int
     snippet: str  # first ~500 chars of the chunk (content_preview)
+    page: int | None = None
 
 
 class QueryResponse(BaseModel):

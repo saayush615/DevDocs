@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth import verify_token
 from app.models import IngestRequest, IngestResponse
-from app.services.chunker import chunk_text
+from app.services.chunker import chunk_sections, chunk_text
 from app.services.vector_store import upsert_chunks
 
 router = APIRouter(
@@ -18,8 +18,11 @@ async def ingest_document(
 ) -> IngestResponse:
     """Ingest a document: chunk → embed + store in Qdrant (one store call)."""
     try:
-        # Step 1: Split the document into chunks
-        chunks = chunk_text(request.content)
+        # Step 1: Split the document into chunks. PDF sections stay page-bounded.
+        if request.sections is not None:
+            chunks = chunk_sections(request.sections)
+        else:
+            chunks = chunk_text(request.content)
 
         if not chunks:
             raise HTTPException(
@@ -32,6 +35,9 @@ async def ingest_document(
             document_id=request.document_id,
             user_id=request.user_id,
             chunks=chunks,
+            title=request.title,
+            source_type=request.source_type,
+            source_url=request.source_url,
         )
 
         # Step 3: Return success response

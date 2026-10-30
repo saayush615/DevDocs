@@ -16,6 +16,23 @@ FALLBACK_ANSWER = "I don't have enough information in the available documents."
 OFF_TOPIC_ANSWER = "I can only answer questions about your uploaded documents."
 
 
+def _context_line(chunk: dict) -> str:
+    page = chunk.get("page")
+    loc = f" p.{page}" if page is not None else ""
+    return f"[{chunk['document_id']}:{chunk['chunk_index']}{loc}] {chunk['content_preview']}"
+
+
+def _citation(chunk: dict) -> dict:
+    citation = {
+        "document_id": chunk["document_id"],
+        "chunk_index": chunk["chunk_index"],
+        "snippet": chunk["content_preview"],
+    }
+    if chunk.get("page") is not None:
+        citation["page"] = int(chunk["page"])
+    return citation
+
+
 def _extract_text(content) -> str:
     """Flash returns str OR [ {'type':'text','text':...} | obj with .text ]."""
     if isinstance(content, str):
@@ -102,10 +119,7 @@ def simple_rag(state: AgentState) -> dict:
             "retry_count": retry_count,
         }
 
-    context = "\n\n".join(
-        f"[{c['document_id']}:{c['chunk_index']}] {c['content_preview']}"
-        for c in chunks
-    )
+    context = "\n\n".join(_context_line(c) for c in chunks)
     history_txt = "\n".join(f"{m['role']}: {m['content']}" for m in history)
 
     # --- 3. Draft answer ---
@@ -120,14 +134,7 @@ def simple_rag(state: AgentState) -> dict:
     )
     draft = _extract_text(llm.invoke(prompt).content).strip()
 
-    citations = [
-        {
-            "document_id": c["document_id"],
-            "chunk_index": c["chunk_index"],
-            "snippet": c["content_preview"],
-        }
-        for c in chunks
-    ]
+    citations = [_citation(c) for c in chunks]
     return {
         "chunks": chunks,
         "draft_answer": draft,

@@ -10,13 +10,14 @@ import { uploadBurstLimiter } from '../middleware/rateLimit.js';
 export const documentsRouter = Router();
 documentsRouter.use(requireAuth);
 
-// Multer config(md & text for mvp)
+// Multer config (md, txt, and pdf)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_FILE_BYTES },
   fileFilter: (_req, file, cb) => {
-    if (file.originalname.endsWith('.md') || file.originalname.endsWith('.txt')) cb(null, true);
-    else cb(Errors.badRequest('Only .md and .txt files allowed'));
+    const name = file.originalname.toLowerCase();
+    if (name.endsWith('.md') || name.endsWith('.txt') || name.endsWith('.pdf')) cb(null, true);
+    else cb(Errors.badRequest('Only .md, .txt, and .pdf files allowed'));
   },
 });
 

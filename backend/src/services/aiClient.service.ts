@@ -17,11 +17,19 @@ export interface IngestResult {
   chunks_created: number;
 }
 
+export interface IngestSection {
+  page: number;
+  text: string;
+}
+
 interface ingestInput {
   document_id: string;
   user_id: string;
   content: string;
   source_type: string;
+  title?: string;
+  source_url?: string;
+  sections?: IngestSection[];
 }
 
 export async function ingestDocument(input: ingestInput): Promise<IngestResult> {
