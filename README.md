@@ -94,10 +94,10 @@ final_answer → END
 **Goal:** Ship PDF ingestion with provenance-rich citations and voice (STT + TTS)
 
 **PDF Ingestion:**
-- [ ] **Node Extractor:** PDF parsing (page-aware) with page numbers and text extraction
-- [ ] **Pipeline:** `source_type: "pdf"`, provenance fields (`page`, `title`, `source_type`, `source_url`), chunker page-aware
-- [ ] **Citations:** Return `page` in citations; UI supports PDF display context
-- [ ] **Upload:** Extend document upload to accept PDFs with same status transitions
+- [x] **Node Extractor:** PDF parsing (page-aware) with page numbers and text extraction
+- [x] **Pipeline:** `source_type: "pdf"`, provenance fields (`page`, `title`, `source_type`, `source_url`), chunker page-aware
+- [x] **Citations:** Return `page` in citations; UI supports PDF display context
+- [x] **Upload:** Extend document upload to accept PDFs with same status transitions
 
 **Voice Agent (STT + TTS):**
 - [ ] **Frontend:** Mic input in chat (Web Speech API + fallback to MediaRecorder)
