@@ -18,7 +18,7 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
   if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#09090b]">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-fuchsia-400 border-t-transparent" />
       </div>
     );
   }

@@ -91,7 +91,7 @@ final_answer → END
 - [x] **Nodes/Edges:** Implement `input_guard` (separates invalid vs allowed), `fallback_response`, wire conditional edges with retry logic.
 
 ### V2 — PDF Ingestion + Provenance + Voice Agent (Demo Ready)
-**Goal:** Ship PDF ingestion with provenance-rich citations and voice (STT + TTS)
+**Goal:** Ship PDF ingestion with provenance-rich citations and voice input (STT only)
 
 **PDF Ingestion:**
 - [x] **Node Extractor:** PDF parsing (page-aware) with page numbers and text extraction
@@ -99,19 +99,20 @@ final_answer → END
 - [x] **Citations:** Return `page` in citations; UI supports PDF display context
 - [x] **Upload:** Extend document upload to accept PDFs with same status transitions
 
-**Voice Agent (STT + TTS):**
-- [ ] **Frontend:** Mic input in chat (Web Speech API + fallback to MediaRecorder)
-- [ ] **STT:** Speech-to-text (browser-first for demo; optional backend `/api/voice/transcribe`)
-- [ ] **TTS:** Text-to-speech for assistant answer (browser `speechSynthesis` or backend `/api/voice/synthesize`)
-- [ ] **Backend:** Minimal auth-protected voice endpoints if not using browser APIs
-- [ ] **Integration:** Speak → transcribe → query → stream → TTS playback
+**Voice Agent (STT only):**
+- [x] **Frontend:** Mic input in chat (Web Speech API + fallback to MediaRecorder)
+- [x] **STT:** Speech-to-text (browser-first for demo; optional backend `/api/voice/transcribe`)
+- [x] **Backend:** Minimal auth-protected transcribe endpoint if not using browser APIs
+- [x] **Integration:** Speak → transcribe into the chat box → send when the user clicks send (answer stays text)
+
+**Deferred:** Text-to-speech (TTS) for spoken answers — browser `speechSynthesis` or backend `/api/voice/synthesize`. Not part of V2.
 
 **Deferred if tight:** GitHub repo/URL ingestion (can move to V2b).
 
 **V2 Acceptance:**
 - [ ] Upload PDF → `embedded` with page-aware chunks
 - [ ] PDF query returns citations that include `page` numbers
-- [ ] Voice roundtrip works in chat UI (speak question → hear answer)
+- [ ] Voice input works in chat UI (speak question → transcript stays in the box until send)
 - [ ] End-to-end works through Node (no direct AI service calls)
 
 ### V3 — Teams & Integrations
@@ -124,7 +125,7 @@ final_answer → END
 - [ ] MCP server on Node (`search_docs`, `get_document`, `query`, `create_flag`)
 - [ ] External agents can query a user's knowledge with correct isolation
 
-**Explicitly deferred:** WhatsApp, semantic memory layer (mem0-style), signup abuse guard (email verification/IP throttling), per-token usage metering (FastAPI-reported token budgets), BM25/cross-encoder retrieval upgrades, GitHub repo/URL ingestion (beyond MVP PDF).
+**Explicitly deferred:** WhatsApp, semantic memory layer (mem0-style), signup abuse guard (email verification/IP throttling), per-token usage metering (FastAPI-reported token budgets), BM25/cross-encoder retrieval upgrades, GitHub repo/URL ingestion (beyond MVP PDF), text-to-speech (TTS) for spoken answers.
 
 ---
 

@@ -111,7 +111,7 @@ export default function Sidebar() {
                 }}
                 className={`group flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
                   isActive
-                    ? "bg-white/10 text-zinc-100"
+                    ? "bg-fuchsia-400/10 text-zinc-100"
                     : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
                 } `}
               >
@@ -185,7 +185,11 @@ export default function Sidebar() {
         {/* Documents link */}
         <button
           onClick={() => router.push("/documents")}
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-200"
+          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+            pathname.startsWith("/documents")
+              ? "bg-fuchsia-400/10 text-zinc-100"
+              : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+          }`}
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -274,7 +278,7 @@ function ConversationRenameForm({
       <input
         autoFocus
         disabled={isSubmitting}
-        className="w-full rounded border border-white/20 bg-zinc-800 px-2 py-0.5 text-sm text-zinc-100 outline-none focus:border-emerald-400"
+        className="w-full rounded border border-white/20 bg-zinc-800 px-2 py-0.5 text-sm text-zinc-100 outline-none focus:border-fuchsia-400"
         {...register("title")}
         onBlur={() => {
           if (skipBlur.current || isSubmitting) return;

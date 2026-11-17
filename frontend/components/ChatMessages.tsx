@@ -88,7 +88,7 @@ export default function ChatMessages({ messages }: ChatMessagesProps) {
                         }
                         return (
                           <code
-                            className="rounded bg-zinc-800 px-1.5 py-0.5 text-xs text-emerald-400"
+                            className="rounded bg-zinc-800 px-1.5 py-0.5 text-xs text-fuchsia-400"
                             {...props}
                           >
                             {children}
@@ -98,7 +98,7 @@ export default function ChatMessages({ messages }: ChatMessagesProps) {
                       // Custom styling for links (open in new tab)
                       a: ({ children, ...props }) => (
                         <a
-                          className="text-emerald-400 underline hover:text-emerald-300"
+                          className="text-fuchsia-400 underline hover:text-fuchsia-300"
                           target="_blank"
                           rel="noopener noreferrer"
                           {...props}

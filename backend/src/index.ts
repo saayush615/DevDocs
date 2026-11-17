@@ -8,6 +8,7 @@ import { documentsRouter } from './routes/documents.route.js';
 import { conversationsRouter } from './routes/conversations.route.js';
 import { chatRouter } from './routes/chat.route.js';
 import { quotaRouter } from './routes/quota.route.js';
+import { voiceRouter } from './routes/voice.route.js';
 import { authBurstLimiter } from './middleware/rateLimit.js';
 
 const app: Express = express();
@@ -33,6 +34,7 @@ app.use('/api/document', documentsRouter);
 app.use('/api/conversation', conversationsRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/quota', quotaRouter);
+app.use('/api/voice', voiceRouter);
 
 app.use(notFound);
 app.use(errorHandler);

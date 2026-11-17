@@ -1,15 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signUp, signupSchema, type SignupFormValues } from "@/lib/auth";
+import AuthFrame from "@/components/AuthFrame";
+import Button from "@/app/ui/Button";
+import Input from "@/app/ui/Input";
 
 export default function SignupPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -38,65 +43,60 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#09090b] px-4">
-      {/* ── Signup Card ── */}
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        noValidate
-        className="w-full max-w-sm rounded-xl border border-white/10 bg-zinc-900 p-8 shadow-2xl"
-      >
-        <h1 className="mb-6 text-xl font-semibold text-zinc-100">Create account</h1>
+    <AuthFrame>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <p className="text-sm font-medium text-zinc-300">DevDocs Copilot</p>
+        <h1 className="mt-2 text-2xl font-medium tracking-tight text-white">Create account</h1>
+        <p className="mt-1 mb-6 text-sm text-zinc-400">Start asking questions from your docs.</p>
 
-        {/* ── Name Field ── */}
-        <label className="mb-1 block text-sm font-medium text-zinc-300">Name</label>
-        <input
+        <Input
+          label="Name"
           type="text"
-          {...register("name")}
           placeholder="Your name"
-          className="mb-1 w-full rounded-lg border border-white/10 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50"
+          autoComplete="name"
+          error={errors.name?.message}
+          {...register("name")}
         />
-        {errors.name && <p className="mb-3 text-sm text-red-400">{errors.name.message}</p>}
-
-        {/* ── Email Field ── */}
-        <label className="mb-1 block text-sm font-medium text-zinc-300">Email</label>
-        <input
+        <Input
+          label="Email"
           type="email"
-          {...register("email")}
           placeholder="you@example.com"
-          className="mb-1 w-full rounded-lg border border-white/10 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50"
+          autoComplete="email"
+          error={errors.email?.message}
+          {...register("email")}
         />
-        {errors.email && <p className="mb-3 text-sm text-red-400">{errors.email.message}</p>}
-
-        {/* ── Password Field ── */}
-        <label className="mb-1 block text-sm font-medium text-zinc-300">Password</label>
-        <input
-          type="password"
-          {...register("password")}
+        <Input
+          label="Password"
+          type={showPassword ? "text" : "password"}
           placeholder="••••••••"
-          className="mb-1 w-full rounded-lg border border-white/10 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50"
+          autoComplete="new-password"
+          error={errors.password?.message}
+          endAdornment={
+            <button
+              type="button"
+              onClick={() => setShowPassword((visible) => !visible)}
+              className="text-xs font-medium text-zinc-400 hover:text-zinc-100"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          }
+          {...register("password")}
         />
-        {errors.password && <p className="mb-3 text-sm text-red-400">{errors.password.message}</p>}
 
-        {/* ── Server Error ── */}
         {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
 
-        {/* ── Submit Button ── */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-emerald-500 py-2.5 text-sm font-medium text-zinc-950 transition hover:bg-emerald-400 disabled:opacity-50"
-        >
+        <Button type="submit" loading={loading} className="w-full">
           {loading ? "Creating…" : "Sign up"}
-        </button>
+        </Button>
 
-        {/* ── Link to Login ── */}
-        <p className="mt-4 text-center text-sm text-zinc-500">
+        <p className="mt-4 text-center text-sm text-zinc-400">
           Already have an account?{" "}
-          <a href="/login" className="text-emerald-400 hover:underline">
+          <Link href="/login" className="text-fuchsia-400 hover:text-fuchsia-300 hover:underline">
             Log in
-          </a>
+          </Link>
         </p>
       </form>
-    </div>
+    </AuthFrame>
   );
 }

@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     LLM_MODEL: str
     LLM_TEMPERATURE: float = 0.0
+    WHISPER_MODEL: str = "whisper-large-v3-turbo"
 
     LANGSMITH_TRACING: bool = False
     LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"

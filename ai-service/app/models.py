@@ -49,6 +49,11 @@ class Citation(BaseModel):
     page: int | None = None
 
 
+class TranscribeResponse(BaseModel):
+    """Text returned by speech-to-text. The assistant reply stays a normal chat message."""
+    text: str
+
+
 class QueryResponse(BaseModel):
     """What we always return — JSON endpoint + final SSE event share this shape."""
     answer: str
