@@ -55,7 +55,7 @@ AI service (`ai-service/`): Python **3.14** venv at `ai-service/.venv`; run `uvi
 - Required env (`ai-service/app/.env` — note the template is **inside `app/`**, not the package root): `GOOGLE_API_KEY`, `GROQ_API_KEY`, `SERVICE_TOKEN`, `LLM_MODEL` (no default — **required**). Chat LLM is Groq via `langchain-groq` (`services/llm.py`, `@lru_cache` singleton, temperature 0); Gemini is **embeddings only** (`EMBEDDING_MODEL=gemini-embedding-001`, dim 768). Qdrant collection `doc_chunks` (created at startup with a `user_id` keyword payload index).
 - Settings come from pydantic-settings (`config.py`, `env_file='app/.env'`) and are a singleton — it copies LangSmith values into `os.environ` itself; don't re-do that.
 - `/query/stream` is **not true token streaming**: it runs the graph once via `ainvoke()`, then re-emits the final answer word-by-word. `graph.astream()` per-token streaming is a known stretch goal (comment in `routers/query.py`).
-- `multi_hop` is only a soft fallback today: `simple_rag` just doubles `top_k`; the real multi-hop branch is V4 (PRD §2.6).
+- `multi_hop` is only a soft fallback today: `simple_rag` just doubles `top_k`; the real multi-hop branch is V3 (PRD goals “V3 — Multi-Hop + Connect”).
 - Guardrails (`services/guards.py`) are built once at import; Guardrails AI telemetry tracing is deliberately disabled (`gr_settings.disable_tracing = True`) — don't re-enable it. Toggles: `GUARD_INPUT_ENABLED` / `GUARD_OUTPUT_ENABLED` / `GUARD_BANNED_WORDS`.
 - Retrieval isolation lives in `services/vector_store.py` `search_chunks()` via a hard `user_id` filter — keep the filter mandatory, never weaken it.
 
@@ -74,5 +74,5 @@ AI service (`ai-service/`): Python **3.14** venv at `ai-service/.venv`; run `uvi
 ## Scope discipline (PRD §2 phase goals + §2.7 Non-Goals)
 
 - **Next up:** finish V0 burst rate limiting (see "Current state"), then V1 — LangGraph hardening (`retry_count`, `off_topic`/`blocked` route values, `fallback_response` node), true streaming, and minimal org tenancy (`organization_id` on `User`/`Document`/`Conversation`/`UsageDaily` + Qdrant filter).
-- **Do not build yet:** PDF/GitHub/URL ingestion, real multi-hop branch, eval harness (V1, PRD §2.3); Slack/Discord, voice, RBAC/departments/admin UI (V2–V3); MCP server (V4, §2.6); memory layer / email verification / WhatsApp (deferred, §2.7).
+- **Do not build yet:** PDF/GitHub/URL ingestion, eval harness (older V1 notes); real multi-hop branch and MCP server (V3 — Multi-Hop + Connect); Slack/Discord, RBAC/departments/admin UI (V4 — Teams & Integrations); memory layer / email verification / WhatsApp (deferred, non-goals). Voice input shipped in V2.
 - Note: the PRD has duplicate section numbers (`## 3` and `## 6` each appear twice) — cite headings, not numbers.

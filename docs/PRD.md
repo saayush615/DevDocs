@@ -25,7 +25,7 @@ Next.js (frontend) → Node.js (BFF: auth, quotas, system of record, SSE bridge)
                      Qdrant (doc_chunks, filtered by user_id)
 ```
 
-- **Node:** Auth (better-auth), quotas + burst rate limits (V0), usage metering, upload/chat, channel gateway (V3), MCP (V4). Never exposes FastAPI URL to frontend.
+- **Node:** Auth (better-auth), quotas + burst rate limits (V0), usage metering, upload/chat, MCP (V3), channel gateway (V4). Never exposes FastAPI URL to frontend.
 - **FastAPI:** Stateless, trusts only service token. `/ingest` chunks+embeds (Gemini) → Qdrant; `/query` runs LangGraph → SSE back to Node.
 - **Qdrant:** All queries filtered by `user_id`. Keyword index on `user_id`.
 - **Frontend:** Next.js App Router, react-hook-form + zod, streams via SSE; citations in trailing `done` event.
@@ -49,7 +49,7 @@ fallback_response → final_answer
 final_answer → END
 ```
 
-**Final (V4, Multi-hop):**
+**Final (V3, Multi-hop):**
 ```
 START → input_guard
 input_guard → fallback_response [invalid]
@@ -75,21 +75,21 @@ final_answer → END
 - **LangGraph hardening:** Add `retry_count`, handle `off_topic`/`invalid_input`, implement `input_guard` + `fallback_response`, retry-on-grounding (once), wire correct edges.
 - **Streaming:** Harden SSE (FastAPI→Node→client), ensure citations arrive in trailing `done` event with no buffering.
 - **Polish:** Align contracts with `route_taken` (`simple|multi_hop|blocked|off_topic`), surface clearer errors.
-- **Scope:** Remove per-answer feedback loop; multi-hop branch deferred.
+- **Scope:** Remove per-answer feedback loop; multi-hop branch deferred to V3.
 
 ### 2.4 Goals (V2 — PDF + Provenance + Voice)
 - **PDF ingestion:** Page-aware extraction with page numbers; `source_type: "pdf"`, provenance fields (`page`, `title`, `source_type`, `source_url`); citations include `page`.
 - **Voice agent:** Mic input and speech-to-text (browser-first). The transcript stays in the chat box until the user sends it. Auth-protected `POST /api/voice/transcribe` only if not using browser APIs. Text-to-speech is out of V2.
 - **Integration:** Speak → transcribe into the input → user sends → stream. The assistant answer stays text in the chat.
 
-### 2.5 Goals (V3 — Teams & Integrations)
+### 2.5 Goals (V3 — Multi-Hop + Connect)
+- **Multi-hop:** `multi_hop_planner → retrieve_each (≤4) → synthesize` with dedup; reuse grounding/fallback.
+- **Connect:** MCP server on Node (`search_docs`, `get_document`, `query`, `create_flag`) with user context; external agents query with correct isolation.
+
+### 2.6 Goals (V4 — Teams & Integrations)
 - **Integrations:** Slack (Bolt) + Discord (`discord.js`); OAuth login + identity linking (unlinked refused).
 - **Chat behavior:** Non-streamed replies for channels (typing indicator + final/edit).
 - **Teams:** Departments/roles/permissions matrix; access-scoped retrieval (dept/role markers); leak-closed on ACL change.
-
-### 2.6 Goals (V4 — Multi-Hop + Connect)
-- **Multi-hop:** `multi_hop_planner → retrieve_each (≤4) → synthesize` with dedup; reuse grounding/fallback.
-- **Connect:** MCP server on Node (`search_docs`, `get_document`, `query`, `create_flag`) with user context; external agents query with correct isolation.
 
 ### 2.7 Non-Goals
 - No general-purpose chatbot (no small talk, no unrelated Q&A).
@@ -106,7 +106,7 @@ final_answer → END
 Three-tier system. **Strict, non-negotiable rule: the frontend and any external channel never call the AI service directly — all requests go through the Node backend**, which is the single auth boundary, the policy/quota boundary, and the system of record.
 
 ```
-Next.js (frontend)                          External channels (V2): Slack / Discord
+Next.js (frontend)                          External channels (V4): Slack / Discord
    │ HTTPS (better-auth session cookie)          │ (OAuth-linked identities)
    ▼                                            ▼
 Node.js (BFF / backend) ◄───────────────────────┘
@@ -114,7 +114,7 @@ Node.js (BFF / backend) ◄─────────────────�
    │ - Postgres: users, documents, conversations, messages, usage/quota
    │ - Quotas + rate limiting (V0)
    │ - Document extraction (V1): md/txt, PDF, GitHub, web URL
-   │ - Channel gateway (V2) / MCP server: search_docs, get_document, query, create_flag (V4)
+   │ - MCP server: search_docs, get_document, query, create_flag (V3) / Channel gateway (V4)
    │ - Calls FastAPI with a service-to-service token
    ▼
 FastAPI (AI service, stateless)
@@ -131,7 +131,7 @@ Qdrant (vector DB)
 - Chat interface with streaming responses and inline citations. Citations render on the stream-complete SSE event (they arrive in the trailing event, not with tokens).
 - Conversation history sidebar.
 - V0: friendly "daily limit reached" (`429`) states on chat and documents pages.
-- Stretch (post-V3): admin/audit page.
+- Stretch (post-V4): admin/audit page.
 
 ### 3.2 Backend (Node.js)
 - Framework: Express 5. ESM (`module: nodenext`); relative imports use explicit `.js` extensions.
@@ -141,8 +141,8 @@ Qdrant (vector DB)
   - **Usage metering (V0):** persists per-user daily counts (`UsageDaily`) from Node's own request tracking — FastAPI reports no token usage in V0.
   - **Document upload endpoint:** accepts file/URL/repo link, extracts raw text (V1: md/txt/PDF/GitHub/web via `extract.service.ts`), stores metadata, forwards content + provenance to FastAPI `/ingest`.
   - **Chat endpoint:** accepts question + conversation_id, checks quota, forwards to FastAPI `/query/stream` with service-to-service auth, streams the response back via SSE (token-by-token), persists message + citations + route.
-  - **Channel gateway (V2):** thin adapters (`slack.adapter.ts`, `discord.adapter.ts`) normalizing inbound to `{identity, text}` and calling the same core chat path as the web UI, so quotas and metering apply identically.
-  - **MCP server (V4):** `search_docs`, `get_document`, `query`, `create_flag` tools; all AI work still routed through FastAPI.
+  - **MCP server (V3):** `search_docs`, `get_document`, `query`, `create_flag` tools; all AI work still routed through FastAPI.
+  - **Channel gateway (V4):** thin adapters (`slack.adapter.ts`, `discord.adapter.ts`) normalizing inbound to `{identity, text}` and calling the same core chat path as the web UI, so quotas and metering apply identically.
   - Conversation CRUD endpoints.
   - **Never exposes FastAPI's URL or embedding/LLM logic to the frontend.**
 
@@ -161,7 +161,7 @@ Qdrant (vector DB)
 - Collection: `doc_chunks`.
 - Vector size matches the embedding model output (768 for the configured Gemini truncation).
 - Payload fields: `document_id`, `user_id`, `chunk_index`, `content_preview`, `title`, `source_type`, `source_url`, `page`, `heading`. A keyword index exists on `user_id` so filtered searches do not full-scan.
-- **All queries are filtered at the Qdrant query level** by `user_id`. V3 composes department/role access markers on top. No cross-user leakage, ever.
+- **All queries are filtered at the Qdrant query level** by `user_id`. V4 composes department/role access markers on top. No cross-user leakage, ever.
 
 ### 3.5 Code Quality & Language Standards
 - **Language:** TypeScript for the Next.js frontend and Node.js backend (strict mode in `tsconfig.json`). FastAPI is Python with type hints; Pydantic models for all request/response schemas.
@@ -184,7 +184,7 @@ Qdrant (vector DB)
 - **V0:** `UsageDaily` (userId,date,queryCount,uploadCount; unique[userId,date]) — Node-enforced
 - **V1:** `Document` += `sourceUrl,contentHash,fetchedAt,chunkConfig,embeddingModel`
 - **V2:** `LinkedIdentity` (userId,provider,externalId)
-- **V3+:** `Membership`, `Department`, `Role`, `Permission`, `DocumentAcl`
+- **V4:** `Membership`, `Department`, `Role`, `Permission`, `DocumentAcl`
 
 ---
 
@@ -222,7 +222,7 @@ V1 — provenance + feedback:
 V2 — identity linking:
 - `LinkedIdentity { id, userId, provider, externalId, @@unique([provider, externalId]) }`.
 
-V3 — RBAC (concepts locked here; schema finalized when V3 is planned):
+V4 — RBAC (concepts locked here; schema finalized when V4 is planned):
 - `Membership { userId, departmentId?, roleId }`
 - `Department { id, name }`
 - `Role`, `Permission` (resource × action matrix), `DocumentAcl` (scope: department | role | specific users).
@@ -238,13 +238,13 @@ POST /ingest
 Request:  { document_id, user_id, content, source_type, source_url?, title?, sections? }
 Response: { status: "embedded", chunks_created: <int> }     // usage.embedding_tokens added in V1+
 
-POST /query/stream   (SSE; used by web chat, and by Node internally for channels in V2)
+POST /query/stream   (SSE; used by web chat, and by Node internally for channels in V4)
 Request:  { conversation_id, user_id, question, history: [{role, content}], top_k }
 Stream events:
   data: {"token": "word "}          (repeated until the answer completes)
   data: {"done": true, citations: [...], route_taken: "..."}   // usage added in V1+
 
-POST /query   (JSON; used for chat-app replies in V2 and ad-hoc testing)
+POST /query   (JSON; used for chat-app replies in V4 and ad-hoc testing)
 Request:  same body as /query/stream
 Response: { answer, citations, route_taken }                  // usage added in V1+
 ```
@@ -269,11 +269,11 @@ FastAPI must never be called from the frontend directly. All FastAPI endpoints r
 
 ## 6. Non-Functional
 
-- **Isolation:** `user_id` at Qdrant (mandatory). Leak-closed on ACL changes (V3).
+- **Isolation:** `user_id` at Qdrant (mandatory). Leak-closed on ACL changes (V4).
 - **Quotas + rate limits (V0):** Daily quotas, lifetime caps, per-file size cap, per-user/IP burst (chat/upload/auth). Enforced by Node before work → `429` (never cut stream).
 - **Guardrails (V0):** `input_guard` (regex + Guardrails AI ProfanityFree) before classify; `grounding_check` fail-closed; `output_guard` (ProfanityFree+BanList) after final. Env-toggleable.
 - **Observability:** LangSmith on every run (spans, route, grounding, token usage).
-- **Streaming:** SSE FastAPI→Node→client; citations in trailing `done` event. Channels non-streamed (V3).
+- **Streaming:** SSE FastAPI→Node→client; citations in trailing `done` event. Channels non-streamed (V4).
 - **Security:** SSRF protection for URL ingestion (V2+), content-hash dedup, size caps, never expose secrets, never call FastAPI from frontend.
 - **Config:** Env-driven (`.env` only; never hardcoded). Never read/commit `.env` (use `.env.example`).
 - **Code:** TS strict (Node/Next), Python type hints (FastAPI). ESLint+Prettier per package. `pnpm` (frontend/backend), `uv` (ai-service). No comments unless asked.
@@ -282,4 +282,4 @@ FastAPI must never be called from the frontend directly. All FastAPI endpoints r
 **Rules:** Never read/commit `.env` (use `.env.example` only). ESM requires `.js` extensions. Prisma client in `backend/src/generated/prisma` (gitignored) — run `prisma generate`. AI `/ingest` can return 200 on failure — check `status !== 'embedded'`. Avoid adding comments.
 
 ---
-*Last updated: 2026-10-04.*
+*Last updated: 2026-11-17.*

@@ -27,7 +27,7 @@ An internal knowledge-assistant web app. Engineers upload docs (`.md`, `.txt`, a
 ## Architecture
 
 ```
-Next.js (frontend)            External channels (V2): Slack / Discord
+Next.js (frontend)            External channels (V4): Slack / Discord
    │ HTTPS (session cookie)          │ (OAuth-linked identities)
    ▼                                 ▼
 Node.js (BFF / backend) ◄───────────┘
@@ -115,15 +115,15 @@ final_answer → END
 - [ ] Voice input works in chat UI (speak question → transcript stays in the box until send)
 - [ ] End-to-end works through Node (no direct AI service calls)
 
-### V3 — Teams & Integrations
-- [ ] Slack adapter (Bolt) + Discord adapter (`discord.js`)
-- [ ] OAuth login & identity linking; unlinked identities refused
-- [ ] Non-streamed replies (typing indicator + final message)
-
-### V4 — Multi-Hop + Connect
+### V3 — Multi-Hop + Connect
 - [ ] **Multi-hop RAG:** `multi_hop_planner → retrieve_each (fan-out ≤4) → synthesize` with dedup; reuse grounding/fallback
 - [ ] MCP server on Node (`search_docs`, `get_document`, `query`, `create_flag`)
 - [ ] External agents can query a user's knowledge with correct isolation
+
+### V4 — Teams & Integrations
+- [ ] Slack adapter (Bolt) + Discord adapter (`discord.js`)
+- [ ] OAuth login & identity linking; unlinked identities refused
+- [ ] Non-streamed replies (typing indicator + final message)
 
 **Explicitly deferred:** WhatsApp, semantic memory layer (mem0-style), signup abuse guard (email verification/IP throttling), per-token usage metering (FastAPI-reported token budgets), BM25/cross-encoder retrieval upgrades, GitHub repo/URL ingestion (beyond MVP PDF), text-to-speech (TTS) for spoken answers.
 
