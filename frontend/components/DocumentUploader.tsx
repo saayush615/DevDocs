@@ -99,7 +99,7 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
         onDragLeave={handleDragLeave}
         className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
           isDragging
-            ? "border-emerald-400 bg-emerald-400/5"
+            ? "border-fuchsia-400 bg-fuchsia-400/5"
             : "border-white/10 bg-zinc-900/50 hover:border-white/20 hover:bg-zinc-900"
         } ${uploading ? "pointer-events-none opacity-50" : ""} `}
       >
@@ -122,7 +122,7 @@ export default function DocumentUploader({ onUpload }: DocumentUploaderProps) {
               />
             </svg>
             <p className="text-sm text-zinc-400">
-              Drop a file here or <span className="text-emerald-400">browse</span>
+              Drop a file here or <span className="text-fuchsia-400">browse</span>
             </p>
             <p className="mt-1 text-xs text-zinc-600">.md, .txt, or .pdf, up to {maxFileMB}MB</p>
           </>

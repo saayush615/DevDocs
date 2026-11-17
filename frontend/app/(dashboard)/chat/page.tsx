@@ -39,9 +39,9 @@ export default function ChatPage() {
       {/* ── Empty State ── */}
       <div className="text-center">
         {/* App icon */}
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-fuchsia-400/10">
           <svg
-            className="h-6 w-6 text-emerald-400"
+            className="h-6 w-6 text-fuchsia-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -84,15 +84,15 @@ export default function ChatPage() {
           <p className="text-xs font-medium text-zinc-500">Quick tips:</p>
           <ul className="space-y-1 text-xs text-zinc-600">
             <li className="flex items-start gap-2">
-              <span className="mt-0.5 text-emerald-400">→</span>
+              <span className="mt-0.5 text-fuchsia-400">→</span>
               Upload documents in the Documents tab first
             </li>
             <li className="flex items-start gap-2">
-              <span className="mt-0.5 text-emerald-400">→</span>
+              <span className="mt-0.5 text-fuchsia-400">→</span>
               Ask specific questions for better answers
             </li>
             <li className="flex items-start gap-2">
-              <span className="mt-0.5 text-emerald-400">→</span>
+              <span className="mt-0.5 text-fuchsia-400">→</span>
               Answers include citations linking back to source docs
             </li>
           </ul>
