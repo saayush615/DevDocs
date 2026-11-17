@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import ingest, query
+from app.routers import ingest, query, transcribe
 from app.services.vector_store import init_collection
 
 # Lifespan Function
@@ -38,6 +38,7 @@ app.add_middleware(
 # Mount the ingest router
 app.include_router(ingest.router)
 app.include_router(query.router)
+app.include_router(transcribe.router)
 
 
 # Health check endpoint

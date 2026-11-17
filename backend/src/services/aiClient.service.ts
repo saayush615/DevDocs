@@ -55,6 +55,27 @@ interface fetchInput {
   history: HistoryItem[];
 }
 
+export async function transcribeAudio(
+  buffer: Buffer,
+  mimeType: string,
+  filename: string,
+): Promise<string> {
+  const form = new FormData();
+  const file = new File([new Uint8Array(buffer)], filename || 'speech.webm', {
+    type: mimeType || 'audio/webm',
+  });
+  form.append('audio', file);
+  const res = await fetch(`${AI_URL}/transcribe`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${Token}` },
+    body: form,
+  });
+  if (res.status === 400) throw new Error('No speech detected');
+  if (!res.ok) throw new Error(`AI transcribe failed: ${res.status}`);
+  const json = (await res.json()) as { text?: string };
+  return json.text ?? '';
+}
+
 export async function fetchAiQueryStream(input: fetchInput): Promise<Response> {
   const res = await fetch(`${AI_URL}/query/stream`, {
     method: 'POST',

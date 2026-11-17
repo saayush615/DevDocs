@@ -15,6 +15,8 @@ const CHAT_WINDOW_MS = readInt('RATE_CHAT_WINDOW_MS', 60_000);
 const CHAT_MAX = readInt('RATE_CHAT_MAX', 20);
 const UPLOAD_WINDOW_MS = readInt('RATE_UPLOAD_WINDOW_MS', 60_000);
 const UPLOAD_MAX = readInt('RATE_UPLOAD_MAX', 10);
+const VOICE_WINDOW_MS = readInt('RATE_VOICE_WINDOW_MS', 60_000);
+const VOICE_MAX = readInt('RATE_VOICE_MAX', 10);
 
 const skipProxyChecks = {
   // Enable validation for the X-Forwarded-For header (false means don't skip this check).
@@ -46,6 +48,16 @@ export const chatBurstLimiter = rateLimit({
   validate: skipProxyChecks,
   keyGenerator: (req) => (req as AuthRequest).userId,
   handler: burstHandler('Too many chat requests. Please wait a moment and try again.'),
+});
+
+export const voiceBurstLimiter = rateLimit({
+  windowMs: VOICE_WINDOW_MS,
+  limit: VOICE_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: skipProxyChecks,
+  keyGenerator: (req) => (req as AuthRequest).userId,
+  handler: burstHandler('Too many transcription requests. Please wait a moment and try again.'),
 });
 
 export const uploadBurstLimiter = rateLimit({
