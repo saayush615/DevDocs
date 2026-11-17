@@ -9,3 +9,4 @@ export {
 } from "./conversations";
 export { getQuota } from "./quota";
 export { chatSSE, type ChatStreamCallbacks } from "./chat";
+export { transcribeAudio } from "./voice";
