@@ -79,8 +79,8 @@ final_answer → END
 
 ### 2.4 Goals (V2 — PDF + Provenance + Voice)
 - **PDF ingestion:** Page-aware extraction with page numbers; `source_type: "pdf"`, provenance fields (`page`, `title`, `source_type`, `source_url`); citations include `page`.
-- **Voice agent:** Mic input and speech-to-text (browser-first). Transcribed text is sent as the chat query. Auth-protected `POST /api/voice/transcribe` only if not using browser APIs. Text-to-speech is out of V2.
-- **Integration:** Speak → transcribe → query → stream. The assistant answer stays text in the chat.
+- **Voice agent:** Mic input and speech-to-text (browser-first). The transcript stays in the chat box until the user sends it. Auth-protected `POST /api/voice/transcribe` only if not using browser APIs. Text-to-speech is out of V2.
+- **Integration:** Speak → transcribe into the input → user sends → stream. The assistant answer stays text in the chat.
 
 ### 2.5 Goals (V3 — Teams & Integrations)
 - **Integrations:** Slack (Bolt) + Discord (`discord.js`); OAuth login + identity linking (unlinked refused).

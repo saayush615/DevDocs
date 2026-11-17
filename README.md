@@ -100,10 +100,10 @@ final_answer → END
 - [x] **Upload:** Extend document upload to accept PDFs with same status transitions
 
 **Voice Agent (STT only):**
-- [ ] **Frontend:** Mic input in chat (Web Speech API + fallback to MediaRecorder)
-- [ ] **STT:** Speech-to-text (browser-first for demo; optional backend `/api/voice/transcribe`)
-- [ ] **Backend:** Minimal auth-protected transcribe endpoint if not using browser APIs
-- [ ] **Integration:** Speak → transcribe → query → stream (answer stays text in the chat)
+- [x] **Frontend:** Mic input in chat (Web Speech API + fallback to MediaRecorder)
+- [x] **STT:** Speech-to-text (browser-first for demo; optional backend `/api/voice/transcribe`)
+- [x] **Backend:** Minimal auth-protected transcribe endpoint if not using browser APIs
+- [x] **Integration:** Speak → transcribe into the chat box → send when the user clicks send (answer stays text)
 
 **Deferred:** Text-to-speech (TTS) for spoken answers — browser `speechSynthesis` or backend `/api/voice/synthesize`. Not part of V2.
 
@@ -112,7 +112,7 @@ final_answer → END
 **V2 Acceptance:**
 - [ ] Upload PDF → `embedded` with page-aware chunks
 - [ ] PDF query returns citations that include `page` numbers
-- [ ] Voice input works in chat UI (speak question → transcribed text is sent as the query)
+- [ ] Voice input works in chat UI (speak question → transcript stays in the box until send)
 - [ ] End-to-end works through Node (no direct AI service calls)
 
 ### V3 — Teams & Integrations
