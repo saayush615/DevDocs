@@ -144,7 +144,10 @@ def search_chunks(
             "score": float(score),
             "document_id": doc.metadata["document_id"],
             "chunk_index": doc.metadata["chunk_index"],
-            "content_preview": doc.metadata["content_preview"],
+            # Full chunk for the draft and grounding check. content_preview is
+            # only the citation card; chunks are 1000 chars and the preview is 500.
+            "content": doc.page_content,
+            "content_preview": doc.metadata.get("content_preview") or doc.page_content[:500],
             "page": doc.metadata.get("page"),
         }
         for doc, score in hits
