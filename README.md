@@ -116,7 +116,7 @@ final_answer → END
 - [ ] End-to-end works through Node (no direct AI service calls)
 
 ### V3 — Multi-Hop + Connect
-- [ ] **Multi-hop RAG:** `multi_hop_planner → retrieve_each (fan-out ≤4) → synthesize` with dedup; reuse grounding/fallback
+- [x] **Multi-hop RAG:** `multi_hop_planner → retrieve_each (fan-out ≤4) → synthesize` with dedup; reuse grounding/fallback
 - [ ] MCP server on Node (`search_docs`, `get_document`, `query`, `create_flag`)
 - [ ] External agents can query a user's knowledge with correct isolation
 
